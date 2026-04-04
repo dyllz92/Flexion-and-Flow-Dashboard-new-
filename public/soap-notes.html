@@ -1,0 +1,3276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOAP Notes — Flexion &amp; Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       Flexion & Flow — SOAP Note Generator
+       Brand: Navy #1B3A6B | Sky #5BA3D9 | Light #EEF4FB
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --primary:       #1b3a6b;
+      --primary-light: #2c5fa3;
+      --accent:        #5ba3d9;
+      --bg:            #eef4fb;
+      --bg-card:       #ffffff;
+      --text:          #2d3748;
+      --text-light:    #718096;
+      --border:        #d0dff0;
+      --success:       #38a169;
+      --danger:        #e53e3e;
+      --warning-bg:    #fff3cd;
+      --warning-txt:   #856404;
+      --radius:        12px;
+      --radius-sm:     8px;
+      --shadow:        0 4px 24px rgba(27,58,107,0.10);
+      --shadow-sm:     0 2px 8px rgba(27,58,107,0.08);
+      --font:          "Montserrat", -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Background wave ── */
+    .bg-wave {
+      position: fixed; inset: 0;
+      background: url("/bg-wave.png") center center / cover no-repeat;
+      opacity: 0.45; z-index: 0; pointer-events: none;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      position: static;
+      z-index: 200;
+      background: white;
+      box-shadow: 0 2px 12px rgba(255,255,255,0);
+    }
+    .header-inner {
+      max-width: 960px; margin: 0 auto;
+      padding: 20px 24px 12px;
+      display: flex; align-items: center; justify-content: center;
+      background: white;
+      position: relative;
+    }
+    .header-logo { height: 72px; object-fit: contain; }
+    .header-actions {
+      position: absolute; right: 24px; top: 50%;
+      transform: translateY(-50%);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Step bar ── */
+    .step-bar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .step-bar-inner {
+      max-width: 960px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 0;
+      overflow-x: auto;
+    }
+    .step-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 20px 14px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .step-item:hover { background: var(--bg); }
+    .step-item.active { border-bottom-color: var(--primary); }
+    .step-item.done { border-bottom-color: var(--success); }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #e2ebf7; color: var(--text-light);
+      font-size: 0.8rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.2s;
+    }
+    .step-item.active .step-num { background: var(--primary); color: white; }
+    .step-item.done .step-num { background: var(--success); color: white; }
+    .step-label { font-size: 0.82rem; font-weight: 600; color: var(--text-light); transition: color 0.2s; }
+    .step-item.active .step-label { color: var(--primary); }
+    .step-item.done .step-label { color: var(--success); }
+    .step-sep { width: 24px; height: 1px; background: var(--border); flex-shrink: 0; }
+
+    /* ── Page layout ── */
+    .page-content {
+      position: relative; z-index: 1;
+      max-width: 960px; margin: 0 auto;
+      padding: 32px 16px 60px;
+    }
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header-bar {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      padding: 20px 28px;
+      color: white;
+    }
+    .card-header-bar h2 { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+    .card-header-bar p { font-size: 0.78rem; opacity: 0.8; }
+    .card-body { padding: 24px 28px; }
+    .card-footer { padding: 16px 28px; border-top: 1px solid var(--border); background: #f7faff; }
+
+    .card-plain { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+    .card-plain .cp-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.88rem; font-weight: 700; color: var(--primary);
+    }
+    .card-plain .cp-head i { color: var(--accent); font-size: 0.9rem; }
+    .card-plain .cp-body { padding: 18px 20px; }
+
+    /* ── Grid ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .col-span-2 { grid-column: span 2; }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .col-span-2 { grid-column: span 1; }
+    }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 0.78rem; font-weight: 700;
+      color: var(--primary); margin-bottom: 6px; letter-spacing: 0.3px;
+    }
+    .field label .req { color: var(--accent); }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--font); font-size: 0.85rem; color: var(--text);
+      background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(91,163,217,0.15);
+    }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-row { display: flex; gap: 14px; }
+    .field-row > * { flex: 1; min-width: 0; }
+    @media (max-width: 540px) { .field-row { flex-direction: column; } }
+    @media (max-width: 500px) { .hide-mobile { display: none; } }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 50px;
+      font-family: var(--font); font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; border: none; outline: none;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27,58,107,0.25); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-accent:hover { background: #4a8fc0; transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+    .btn-outline:hover { background: var(--primary); color: white; }
+    .btn-ghost { background: transparent; color: var(--text-light); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); border-color: var(--primary); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-sm { padding: 7px 16px; font-size: 0.78rem; }
+    .btn-lg { padding: 13px 36px; font-size: 0.95rem; }
+    .btn-full { width: 100%; justify-content: center; border-radius: var(--radius-sm); }
+
+    /* ── Status badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 50px;
+      font-size: 0.72rem; font-weight: 700;
+    }
+    .badge-success { background: #e6f7ed; color: var(--success); }
+    .badge-accent { background: #e8f4fc; color: var(--accent); }
+    .badge-warning { background: var(--warning-bg); color: var(--warning-txt); }
+    .badge-primary { background: #e2ebf7; color: var(--primary); }
+
+    /* ── Integration client chips ── */
+    .client-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 50px;
+      border: 1.5px solid var(--border);
+      background: #f7faff; cursor: pointer;
+      transition: all 0.15s; font-size: 0.82rem;
+    }
+    .client-chip:hover { border-color: var(--accent); background: #e8f4fc; }
+    .client-chip .chip-avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--primary); color: white;
+      font-size: 0.68rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .client-chip .chip-name { font-weight: 600; color: var(--primary); }
+    .client-chip .chip-ago { font-size: 0.7rem; color: var(--text-light); }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 32px 20px; text-align: center;
+      cursor: pointer; transition: all 0.2s;
+      background: #f7faff;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent); background: #e8f4fc;
+    }
+    .drop-zone .dz-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: #e2ebf7; margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .drop-zone .dz-icon i { color: var(--primary); font-size: 1.3rem; }
+    .drop-zone p { font-size: 0.85rem; color: var(--text); font-weight: 600; }
+    .drop-zone .dz-sub { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
+
+    /* ── Muscle map ── */
+    .muscle-path { cursor: pointer; transition: all 0.2s ease; stroke-width: 0.5; }
+    .muscle-path:hover { opacity: 0.75; filter: brightness(0.85); }
+    .muscle-path.treated { fill: #38a169 !important; stroke: #276749 !important; stroke-width: 1.5 !important; }
+    .muscle-path.follow-up { fill: #d69e2e !important; stroke: #b7791f !important; stroke-width: 1.5 !important; }
+    .muscle-tooltip {
+      position: fixed;
+      background: rgba(27,58,107,0.95); color: white;
+      padding: 6px 12px; border-radius: 6px; font-size: 11px;
+      pointer-events: none; z-index: 9999; white-space: nowrap;
+      font-family: var(--font); font-weight: 600;
+      transform: translate(-50%, -130%);
+    }
+    .view-toggle {
+      display: flex; background: var(--bg); border-radius: var(--radius-sm);
+      padding: 3px; gap: 3px; border: 1px solid var(--border);
+    }
+    .view-toggle button {
+      padding: 6px 16px; border-radius: 6px; border: none;
+      font-family: var(--font); font-size: 0.78rem; font-weight: 600;
+      color: var(--text-light); cursor: pointer; transition: all 0.15s;
+      background: transparent;
+    }
+    .view-toggle button.active { background: var(--primary); color: white; }
+
+    /* ── Muscle legend dots ── */
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── Technique checkboxes ── */
+    .technique-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer;
+      font-size: 0.8rem; font-weight: 500; color: var(--text);
+      transition: all 0.15s; background: #fff;
+    }
+    .technique-item:hover { border-color: var(--accent); background: #f0f8ff; }
+    .technique-item input { accent-color: var(--primary); width: 15px; height: 15px; flex-shrink: 0; }
+    .technique-item input:checked + span { color: var(--primary); font-weight: 600; }
+
+    /* ── SOAP sections ── */
+    .soap-block { border-left: 4px solid; padding-left: 14px; margin-bottom: 4px; }
+    .soap-s { border-color: #5ba3d9; }
+    .soap-o { border-color: #38a169; }
+    .soap-a { border-color: #d69e2e; }
+    .soap-p { border-color: #805ad5; }
+    .soap-n { border-color: #718096; }
+    .soap-letter {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.88rem; font-weight: 800; flex-shrink: 0;
+    }
+    .soap-letter-s { background: #e8f4fc; color: #5ba3d9; }
+    .soap-letter-o { background: #e6f7ed; color: #38a169; }
+    .soap-letter-a { background: #fef9e8; color: #d69e2e; }
+    .soap-letter-p { background: #f3eeff; color: #805ad5; }
+    .soap-letter-n { background: #f1f5f9; color: #718096; }
+    .soap-textarea {
+      width: 100%; background: transparent; border: none; outline: none;
+      font-family: var(--font); font-size: 0.85rem; color: var(--text);
+      line-height: 1.7; resize: none; padding: 0;
+    }
+
+    /* ── Summary panel ── */
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row .sr-label { color: var(--text-light); font-weight: 500; }
+    .summary-row .sr-val { font-weight: 700; color: var(--primary); }
+
+    /* ── Muscle list chips (selected) ── */
+    .muscle-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 50px; font-size: 0.72rem; font-weight: 600;
+      margin: 2px 3px 2px 0;
+    }
+    .muscle-chip-treated { background: #e6f7ed; color: #276749; border: 1px solid #c6f6d5; }
+    .muscle-chip-followup { background: #fef9e8; color: #b7791f; border: 1px solid #fef08a; }
+
+    /* ── Shimmer ── */
+    .shimmer {
+      background: linear-gradient(90deg, #e2ebf7 25%, #d0dff0 50%, #e2ebf7 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--primary); color: white;
+      padding: 10px 24px; border-radius: 50px;
+      font-family: var(--font); font-size: 0.82rem; font-weight: 600;
+      box-shadow: 0 4px 20px rgba(27,58,107,0.3);
+      z-index: 10000; opacity: 0; transition: all 0.3s; pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Info box ── */
+    .info-box {
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      font-size: 0.8rem; line-height: 1.6;
+    }
+    .info-box-blue { background: #e8f4fc; border: 1px solid #bee3f8; color: #1a5276; }
+    .info-box-yellow { background: var(--warning-bg); border: 1px solid #fde68a; color: var(--warning-txt); }
+    .info-box-green { background: #e6f7ed; border: 1px solid #c6f6d5; color: #276749; }
+    .info-box p { margin: 0; }
+    .info-box strong { font-weight: 700; }
+
+    /* ── PDF upload status ── */
+    .pdf-status {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; background: #e6f7ed;
+      border: 1px solid #c6f6d5; border-radius: var(--radius-sm);
+      font-size: 0.82rem; color: #276749; font-weight: 600;
+    }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(27,58,107,0.45);
+      backdrop-filter: blur(3px); z-index: 500;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.hidden, .modal-backdrop[style*="display:none"] { display: none !important; }
+    .modal-box {
+      background: white; border-radius: var(--radius);
+      box-shadow: 0 20px 60px rgba(27,58,107,0.25);
+      width: 100%; overflow: hidden;
+    }
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      padding: 18px 24px; color: white;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-header p { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+    .modal-close {
+      background: rgba(255,255,255,0.15); border: none; color: white;
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.85rem; transition: background 0.15s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.3); }
+    .modal-body { padding: 20px 24px; overflow-y: auto; max-height: 65vh; }
+    .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Footer ── */
+    .site-footer {
+      position: relative; z-index: 1;
+      background: var(--primary);
+      color: rgba(255,255,255,0.75);
+      text-align: center;
+      padding: 16px 24px;
+      font-size: 0.78rem;
+    }
+    .site-footer a { color: rgba(255,255,255,0.75); text-decoration: none; }
+    .site-footer a:hover { color: white; }
+
+    /* ── Responsive ── */
+    @media (max-width: 760px) {
+      [style*="1fr 300px"],
+      [style*="1fr 280px"] {
+        grid-template-columns: 1fr !important;
+      }
+    }
+    @media (max-width: 620px) {
+      .page-content { padding: 16px 14px 48px; }
+      .card-body { padding: 16px 18px; }
+      .card-header-bar { padding: 16px 18px; }
+      .header-inner { padding: 16px 16px 10px; }
+      .header-logo { height: 52px; }
+      .header-actions { right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-wave"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <img id="headerLogo" src="/logo-wordmark.png" alt="Flexion &amp; Flow" class="header-logo"
+           onerror="this.src=''; this.onerror=null; this.style.display='none'; document.getElementById('fallbackLogo').style.display='flex'"/>
+      <div id="fallbackLogo" style="display:none; flex-direction:column; align-items:center; gap:4px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-notes-medical" style="color:white;font-size:1.1rem;"></i>
+          </div>
+          <div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--primary);">Flexion &amp; Flow</div>
+            <div style="font-size:0.72rem;color:var(--text-light);font-weight:500;">Remedial Massage</div>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="statusBadge" class="badge badge-success" style="display:none">
+          <i class="fas fa-check-circle"></i> Note Ready
+        </span>
+        <button onclick="openClientAccounts()" class="btn btn-ghost btn-sm" title="Client Accounts">
+          <i class="fas fa-users"></i> <span class="hide-mobile">Clients</span>
+        </button>
+        <button onclick="resetAll()" class="btn btn-ghost btn-sm">
+          <i class="fas fa-rotate-right"></i> <span class="hide-mobile">New Session</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Step Bar -->
+  <nav class="step-bar">
+    <div class="step-bar-inner">
+      <div class="step-item active" id="stepItem1" onclick="goToStep(1)">
+        <div class="step-num" id="stepNum1">1</div>
+        <span class="step-label">Client Intake</span>
+      </div>
+      <div class="step-sep"></div>
+      <div class="step-item" id="stepItem2" onclick="goToStep(2)">
+        <div class="step-num" id="stepNum2">2</div>
+        <span class="step-label" id="stepLabel2">Muscle Map</span>
+      </div>
+      <div class="step-sep"></div>
+      <div class="step-item" id="stepItem3" onclick="goToStep(3)">
+        <div class="step-num" id="stepNum3">3</div>
+        <span class="step-label" id="stepLabel3">Session Notes</span>
+      </div>
+      <div class="step-sep"></div>
+      <div class="step-item" id="stepItem4" onclick="goToStep(4)">
+        <div class="step-num" id="stepNum4">4</div>
+        <span class="step-label" id="stepLabel4">SOAP Notes</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page-content">
+
+    <!-- ═══════════════════════════════════════
+         STEP 1: CLIENT INTAKE
+         ═══════════════════════════════════════ -->
+    <div id="panel1" class="step-panel active">
+
+      <!-- Client Profiles Integration Banner -->
+      <div class="card" style="margin-bottom:20px; border: 1.5px solid var(--accent);">
+        <div class="card-header-bar" style="padding:16px 24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <i class="fas fa-users" style="font-size:1.1rem;opacity:0.9;"></i>
+              <div>
+                <h2 style="margin:0;font-size:0.95rem;">Client Profiles</h2>
+                <p style="margin:0;font-size:0.72rem;opacity:0.8;">Synced from Flexion &amp; Flow Intake Form</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="openClientBrowser()" class="btn btn-sm" style="background:white;color:var(--primary);border-radius:50px;">
+                <i class="fas fa-search"></i> Browse Clients
+              </button>
+              <button onclick="openWebhookConfig()" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border-radius:50px;border:1px solid rgba(255,255,255,0.3);" title="Configure integration">
+                <i class="fas fa-link"></i> Setup
+              </button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 24px 16px;">
+          <div id="clientProfilesPreview" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <p style="font-size:0.8rem;color:var(--text-light);font-style:italic;" id="noClientsMsg">
+              No client profiles yet — connect your intake form or upload a PDF below.
+            </p>
+          </div>
+          <div id="webhookBanner" style="display:none;margin-top:10px;" class="info-box info-box-blue">
+            <i class="fas fa-circle-check" style="margin-right:6px;"></i>
+            <strong>Integration active.</strong> New intake form submissions appear here automatically.
+            Webhook: <code id="webhookUrlDisplay" style="background:rgba(91,163,217,0.15);padding:1px 6px;border-radius:4px;font-size:0.75rem;"></code>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:20px;">
+
+        <!-- Upload PDF -->
+        <div class="card">
+          <div class="card-header-bar">
+            <h2><i class="fas fa-file-upload" style="margin-right:8px;opacity:0.8;"></i>Upload Intake Form PDF</h2>
+            <p>Auto-extracts client information from the Flexion &amp; Flow intake PDF</p>
+          </div>
+          <div class="card-body">
+            <div id="dropZone" class="drop-zone"
+                 onclick="document.getElementById('pdfInput').click()"
+                 ondragover="handleDragOver(event)"
+                 ondrop="handleDrop(event)">
+              <div class="dz-icon"><i class="fas fa-file-pdf"></i></div>
+              <p>Drop PDF here or click to browse</p>
+              <p class="dz-sub">Flexion &amp; Flow intake forms supported</p>
+              <input type="file" id="pdfInput" accept=".pdf" class="hidden" style="display:none" onchange="handlePDFUpload(event)"/>
+            </div>
+            <div id="pdfStatus" style="display:none;margin-top:12px;" class="pdf-status">
+              <i class="fas fa-check-circle" style="color:var(--success);font-size:1rem;"></i>
+              <span id="pdfFileName"></span>
+              <button onclick="clearPDF()" style="margin-left:auto;background:none;border:none;color:var(--text-light);cursor:pointer;font-size:0.9rem;" title="Remove">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div id="pdfParseProgress" style="display:none;margin-top:10px;font-size:0.8rem;color:var(--text-light);display:none;align-items:center;gap:8px;">
+              <i class="fas fa-spinner fa-spin" style="color:var(--accent);"></i>
+              <span>Extracting text from PDF…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Info -->
+        <div class="card">
+          <div class="card-header-bar">
+            <h2><i class="fas fa-user" style="margin-right:8px;opacity:0.8;"></i>Client Information</h2>
+            <p>Auto-filled from PDF upload or client profile</p>
+          </div>
+          <div class="card-body">
+            <div class="field-row">
+              <div class="field">
+                <label>First Name <span class="req">*</span></label>
+                <input id="clientFirstName" type="text" placeholder="Jane" />
+              </div>
+              <div class="field">
+                <label>Last Name <span class="req">*</span></label>
+                <input id="clientLastName" type="text" placeholder="Smith" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Email <span style="font-size:0.7rem;color:var(--text-light);font-weight:400;">(used to link client file)</span></label>
+                <input id="clientEmail" type="email" placeholder="jane@example.com" oninput="updateSummaryPanel()" />
+              </div>
+              <div class="field">
+                <label>Date of Birth</label>
+                <input id="clientDOB" type="date" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Session Date</label>
+                <input id="sessionDate" type="date" />
+              </div>
+            <div class="field">
+              <label>Chief Complaint / Reason for Visit</label>
+              <input id="chiefComplaint" type="text" placeholder="e.g. Lower back pain, tension headaches…" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Pain Level (0–10)</label>
+                <input id="painLevel" type="number" min="0" max="10" placeholder="7" />
+              </div>
+              <div class="field">
+                <label>Session Duration</label>
+                <select id="sessionDuration">
+                  <option value="30 min">30 min</option>
+                  <option value="45 min">45 min</option>
+                  <option value="60 min" selected>60 min</option>
+                  <option value="75 min">75 min</option>
+                  <option value="90 min">90 min</option>
+                  <option value="120 min">120 min</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Medications / Contraindications</label>
+              <input id="medications" type="text" placeholder="e.g. Blood thinners, NSAIDs…" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Intake Form Data -->
+        <div class="card col-span-2">
+          <div class="card-header-bar" style="padding:14px 24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <h2 style="font-size:0.9rem;"><i class="fas fa-clipboard-list" style="margin-right:8px;opacity:0.8;"></i>Intake Form Data</h2>
+              <span style="font-size:0.72rem;opacity:0.75;">Auto-filled from PDF or enter manually</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <textarea id="intakeFormData" rows="5"
+              placeholder="Intake form data will appear here after PDF upload, or type manually…&#10;&#10;Include: medical history, current conditions, allergies, medications, past injuries, client goals, etc."
+              style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:0.85rem;color:var(--text);resize:vertical;outline:none;transition:border-color 0.2s,box-shadow 0.2s;"
+              onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px rgba(91,163,217,0.15)'"
+              onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"></textarea>
+          </div>
+          <div class="card-footer" style="display:flex;justify-content:flex-end;">
+            <button onclick="goToStep(2)" class="btn btn-primary">
+              Next: Select Muscles <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         STEP 2: MUSCLE MAP
+         ═══════════════════════════════════════ -->
+    <div id="panel2" class="step-panel">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;">
+
+        <!-- Map card -->
+        <div class="card">
+          <div class="card-header-bar">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <div>
+                <h2><i class="fas fa-person" style="margin-right:8px;opacity:0.8;"></i>Interactive Muscle Map</h2>
+                <p>Click muscles to mark as treated or needing follow-up</p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="view-toggle">
+                  <button id="btnMale" onclick="setGender('male')" class="active">
+                    <i class="fas fa-mars" style="margin-right:4px;"></i>Male
+                  </button>
+                  <button id="btnFemale" onclick="setGender('female')">
+                    <i class="fas fa-venus" style="margin-right:4px;"></i>Female
+                  </button>
+                </div>
+                <div class="view-toggle">
+                  <button id="btnAnterior" onclick="setView('anterior')" class="active">Anterior</button>
+                  <button id="btnPosterior" onclick="setView('posterior')">Posterior</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Legend -->
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;align-items:center;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-light);">
+                <div class="legend-dot" style="background:rgba(56,161,105,0.45);border:1px solid #276749;"></div> Treated
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-light);">
+                <div class="legend-dot" style="background:rgba(214,158,46,0.45);border:1px solid #b7791f;"></div> Follow-up
+              </div>
+            </div>
+            <!-- Region Filter Tabs -->
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;" id="regionTabs"></div>
+            <input id="muscleSearchInput" type="text" placeholder="Search muscles (e.g. rhomboids)" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:0.82rem;outline:none;margin-bottom:12px;" />
+            <!-- Muscle Map -->
+            <div style="display:flex;justify-content:center;overflow:auto;margin-bottom:14px;">
+              <div id="muscleMapContainer" style="min-width:280px;max-width:480px;width:100%;"></div>
+            </div>
+            <!-- Muscle Action Panel (list with buttons) -->
+            <div id="muscleActionPanel" style="max-height:300px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <!-- Selected muscles + nav -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card-plain">
+            <div class="cp-head">
+              <i class="fas fa-list-check"></i> Selected Muscles
+            </div>
+            <div class="cp-body">
+              <div style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                  <div class="legend-dot" style="background:#38a169;border:1px solid #276749;"></div>
+                  <span style="font-size:0.72rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;">Treated</span>
+                </div>
+                <div id="treatedList" style="min-height:24px;">
+                  <p style="font-size:0.75rem;color:var(--text-light);font-style:italic;">None selected</p>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                  <div class="legend-dot" style="background:#d69e2e;border:1px solid #b7791f;"></div>
+                  <span style="font-size:0.72rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;">Follow-up Needed</span>
+                </div>
+                <div id="followupList" style="min-height:24px;">
+                  <p style="font-size:0.75rem;color:var(--text-light);font-style:italic;">None selected</p>
+                </div>
+              </div>
+              <button onclick="clearAllMuscles()" class="btn btn-ghost btn-sm btn-full" style="margin-top:14px;font-size:0.75rem;">
+                <i class="fas fa-times"></i> Clear All
+              </button>
+            </div>
+          </div>
+
+          <div class="info-box info-box-blue" style="font-size:0.78rem;">
+            <strong><i class="fas fa-lightbulb" style="margin-right:5px;"></i>Tip:</strong>
+            Toggle Anterior / Posterior to select muscles on both sides. All selections are retained.
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button onclick="goToStep(1)" class="btn btn-ghost" style="flex:1;justify-content:center;">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <button onclick="goToStep(3)" class="btn btn-primary" style="flex:1;justify-content:center;">
+              Next <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         STEP 3: SESSION NOTES
+         ═══════════════════════════════════════ -->
+    <div id="panel3" class="step-panel">
+      <div class="grid-2" style="gap:20px;">
+
+        <div class="card">
+          <div class="card-header-bar">
+            <h2><i class="fas fa-pen-to-square" style="margin-right:8px;opacity:0.8;"></i>Session Summary</h2>
+            <p>Describe what you found and what you did</p>
+          </div>
+          <div class="card-body">
+            <div class="field">
+              <label>Techniques Used</label>
+              <div id="techniqueCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;"></div>
+            </div>
+            <div class="field" style="margin-top:4px;">
+              <label>Session Notes <span style="font-weight:400;color:var(--text-light);text-transform:none;">(describe what you found &amp; did)</span></label>
+              <textarea id="sessionSummary" rows="6"
+                placeholder="Describe your findings and treatment approach…&#10;&#10;e.g. Client presented with elevated tone in upper traps bilaterally. Significant trigger points at TP1 and TP2. Applied sustained pressure for 90s each. ROM improved post-treatment…"
+                style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:0.85rem;color:var(--text);resize:vertical;outline:none;line-height:1.7;transition:border-color 0.2s,box-shadow 0.2s;"
+                onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px rgba(91,163,217,0.15)'"
+                onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"></textarea>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Post-Session Pain (0–10)</label>
+                <input id="postPainLevel" type="number" min="0" max="10" placeholder="3" />
+              </div>
+              <div class="field">
+                <label>Client Feedback</label>
+                <input id="clientFeedback" type="text" placeholder="e.g. Significant relief in neck area…" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <!-- Session preview -->
+          <div class="card-plain">
+            <div class="cp-head"><i class="fas fa-eye"></i> Session Preview</div>
+            <div class="cp-body">
+              <div class="summary-row"><span class="sr-label">Client</span><span class="sr-val" id="summaryClient">—</span></div>
+              <div class="summary-row"><span class="sr-label">Date</span><span class="sr-val" id="summaryDate">—</span></div>
+              <div class="summary-row"><span class="sr-label">Duration</span><span class="sr-val" id="summaryDuration">—</span></div>
+              <div class="summary-row"><span class="sr-label">Muscles treated</span><span class="sr-val" id="summaryMuscleCount">0</span></div>
+              <div class="summary-row"><span class="sr-label">Follow-up needed</span><span class="sr-val" id="summaryFollowupCount">0</span></div>
+            </div>
+          </div>
+
+          <!-- API Key (Hidden as backend handles it) -->
+          <div class="card-plain" style="display:none;">
+            <div class="cp-head"><i class="fas fa-key"></i> OpenAI API Key</div>
+            <div class="cp-body">
+              <p style="font-size:0.78rem;color:var(--text-light);margin-bottom:10px;">Required to generate AI-powered SOAP notes</p>
+              <input id="openaiKey" type="password" value="backend-managed"
+                style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:monospace;font-size:0.82rem;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;"/>
+            </div>
+          </div>
+
+          <div class="info-box info-box-yellow">
+            <p><strong><i class="fas fa-triangle-exclamation" style="margin-right:5px;"></i>Before Generating:</strong> Review your muscle selections and session notes. The AI will use all this information to create comprehensive SOAP documentation.</p>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button onclick="goToStep(2)" class="btn btn-ghost" style="flex:1;justify-content:center;">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <button onclick="generateSOAP()" id="generateBtn" class="btn btn-primary" style="flex:1;justify-content:center;">
+              <i class="fas fa-wand-magic-sparkles"></i> Generate SOAP
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         STEP 4: SOAP NOTES
+         ═══════════════════════════════════════ -->
+    <div id="panel4" class="step-panel">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;">
+
+        <!-- SOAP Content -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <!-- Loading state -->
+          <div id="soapLoading" style="display:none;" class="card">
+            <div class="card-body" style="text-align:center;padding:48px 28px;">
+              <div style="width:64px;height:64px;border-radius:50%;background:#e2ebf7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                <i class="fas fa-wand-magic-sparkles fa-spin" style="color:var(--primary);font-size:1.5rem;"></i>
+              </div>
+              <h3 style="font-size:1rem;font-weight:700;color:var(--primary);margin-bottom:8px;">Generating SOAP Notes…</h3>
+              <p style="font-size:0.82rem;color:var(--text-light);">AI is analysing your session data and creating professional documentation</p>
+              <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;align-items:center;">
+                <div class="shimmer" style="height:12px;width:75%;"></div>
+                <div class="shimmer" style="height:12px;width:55%;"></div>
+                <div class="shimmer" style="height:12px;width:65%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SOAP sections -->
+          <div id="soapContent" style="display:none;flex-direction:column;gap:16px;">
+
+            <!-- Header -->
+            <div class="card">
+              <div class="card-header-bar">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                  <div>
+                    <h2 id="soapClientName" style="font-size:1.1rem;margin-bottom:2px;"></h2>
+                    <p id="soapMeta" style="opacity:0.8;font-size:0.78rem;"></p>
+                  </div>
+                  <div style="text-align:right;font-size:0.75rem;opacity:0.75;">
+                    <div id="soapDate"></div>
+                    <div id="soapDuration"></div>
+                  </div>
+                </div>
+                <div id="soapMusclesSummary" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+                <!-- Save badges -->
+                <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                  <span id="savedFileBadge" style="display:none;background:rgba(255,255,255,0.15);border-radius:50px;padding:3px 10px;font-size:0.72rem;font-weight:600;">
+                    <i class="fas fa-folder-open" style="margin-right:4px;"></i><span></span>
+                  </span>
+                  <a id="driveBadge" href="#" target="_blank" style="display:none;background:rgba(255,255,255,0.15);border-radius:50px;padding:3px 10px;font-size:0.72rem;font-weight:600;color:white;text-decoration:none;">
+                    <i class="fab fa-google-drive" style="margin-right:4px;"></i>View in Drive
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- S -->
+            <div class="card">
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                  <div class="soap-letter soap-letter-s">S</div>
+                  <h3 style="font-size:0.9rem;font-weight:700;color:var(--primary);">Subjective</h3>
+                  <button onclick="copySection('S')" class="btn btn-ghost btn-sm" style="margin-left:auto;padding:5px 10px;"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="soap-block soap-s">
+                  <textarea id="soapS" rows="4" class="soap-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- O -->
+            <div class="card">
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                  <div class="soap-letter soap-letter-o">O</div>
+                  <h3 style="font-size:0.9rem;font-weight:700;color:var(--primary);">Objective</h3>
+                  <button onclick="copySection('O')" class="btn btn-ghost btn-sm" style="margin-left:auto;padding:5px 10px;"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="soap-block soap-o">
+                  <textarea id="soapO" rows="5" class="soap-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- A -->
+            <div class="card">
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                  <div class="soap-letter soap-letter-a">A</div>
+                  <h3 style="font-size:0.9rem;font-weight:700;color:var(--primary);">Assessment</h3>
+                  <button onclick="copySection('A')" class="btn btn-ghost btn-sm" style="margin-left:auto;padding:5px 10px;"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="soap-block soap-a">
+                  <textarea id="soapA" rows="4" class="soap-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- P -->
+            <div class="card">
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                  <div class="soap-letter soap-letter-p">P</div>
+                  <h3 style="font-size:0.9rem;font-weight:700;color:var(--primary);">Plan</h3>
+                  <button onclick="copySection('P')" class="btn btn-ghost btn-sm" style="margin-left:auto;padding:5px 10px;"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="soap-block soap-p">
+                  <textarea id="soapP" rows="4" class="soap-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- N -->
+            <div class="card">
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                  <div class="soap-letter soap-letter-n">N</div>
+                  <h3 style="font-size:0.9rem;font-weight:700;color:var(--primary);">Therapist Notes</h3>
+                  <button onclick="copySection('N')" class="btn btn-ghost btn-sm" style="margin-left:auto;padding:5px 10px;"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="soap-block soap-n">
+                  <textarea id="soapN" rows="3" class="soap-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Signature -->
+            <div class="card">
+              <div class="card-header-bar" style="padding:14px 24px;">
+                <h2 style="font-size:0.88rem;"><i class="fas fa-signature" style="margin-right:8px;opacity:0.8;"></i>Therapist Signature</h2>
+              </div>
+              <div class="card-body">
+                <div class="field-row">
+                  <div class="field"><label>Therapist Name</label><input id="therapistName" type="text" placeholder="Your full name" /></div>
+                  <div class="field"><label>Credentials</label><input id="therapistCredentials" type="text" placeholder="e.g. LMT, RMT, CMT" /></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right panel: Actions + Muscles -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <div class="card">
+            <div class="card-header-bar" style="padding:14px 20px;">
+              <h2 style="font-size:0.88rem;"><i class="fas fa-file-export" style="margin-right:8px;opacity:0.8;"></i>Export &amp; Actions</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button onclick="exportPDF()" class="btn btn-primary btn-full">
+                  <i class="fas fa-file-pdf"></i> Export as PDF
+                </button>
+                <button onclick="copyAllSOAP()" class="btn btn-outline btn-full">
+                  <i class="fas fa-copy"></i> Copy All Text
+                </button>
+                <button onclick="regenerateSOAP()" class="btn btn-ghost btn-full">
+                  <i class="fas fa-rotate"></i> Regenerate
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-plain">
+            <div class="cp-head"><i class="fas fa-person"></i> Muscles Reference</div>
+            <div class="cp-body">
+              <div id="soapMusclesList" style="font-size:0.78rem;color:var(--text);"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button onclick="goToStep(3)" class="btn btn-ghost" style="flex:1;justify-content:center;"><i class="fas fa-arrow-left"></i> Back</button>
+            <button onclick="resetAll()" class="btn btn-outline" style="flex:1;justify-content:center;"><i class="fas fa-plus"></i> New</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <strong>Flexion &amp; Flow</strong> · Remedial Massage · SOAP Note Generator<br>
+    <span style="font-size:0.72rem;opacity:0.75;">4/207 Barkly St, Footscray VIC 3011 · 0420 435 950 · dylan@flexionandflow.com.au</span>
+  </footer>
+
+  <!-- ═══════════════════════════════════════
+       CLIENT BROWSER MODAL
+       ═══════════════════════════════════════ -->
+  <div id="clientBrowserModal" class="modal-backdrop hidden" style="display:none;">
+    <div class="modal-box" style="max-width:640px;max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <div>
+          <h3><i class="fas fa-users" style="margin-right:8px;opacity:0.8;"></i>Client Profiles</h3>
+          <p>Select a client to auto-fill their intake information</p>
+        </div>
+        <button class="modal-close" onclick="closeClientBrowser()"><i class="fas fa-times"></i></button>
+      </div>
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+        <div style="position:relative;">
+          <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-light);font-size:0.8rem;"></i>
+          <input id="clientSearch" type="text" placeholder="Search by name, email or phone…"
+            oninput="filterClients()"
+            style="width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:0.82rem;outline:none;"
+            onfocus="this.style.borderColor='var(--accent)'"
+            onblur="this.style.borderColor='var(--border)'"/>
+        </div>
+      </div>
+      <div id="clientList" class="modal-body" style="flex:1;"></div>
+      <div class="modal-footer">
+        <span id="clientCount" style="font-size:0.75rem;color:var(--text-light);"></span>
+        <button onclick="closeClientBrowser()" class="btn btn-ghost btn-sm">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       WEBHOOK SETUP MODAL
+       ═══════════════════════════════════════ -->
+  <div id="webhookModal" class="modal-backdrop hidden" style="display:none;">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-header">
+        <div>
+          <h3><i class="fas fa-link" style="margin-right:8px;opacity:0.8;"></i>Flexion &amp; Flow Integration Setup</h3>
+          <p>Connect the intake form to this SOAP generator</p>
+        </div>
+        <button class="modal-close" onclick="closeWebhookConfig()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box info-box-blue" style="margin-bottom:18px;">
+          <strong><i class="fas fa-plug" style="margin-right:5px;"></i>How it works:</strong>
+          <ol style="margin:8px 0 0 16px;font-size:0.78rem;line-height:1.8;">
+            <li>Client submits the Flexion &amp; Flow intake form</li>
+            <li>Form automatically sends their data to this app</li>
+            <li>Client profile appears in the Browse Clients panel</li>
+            <li>Click their name to auto-fill a new SOAP session instantly</li>
+          </ol>
+        </div>
+
+        <div class="field">
+          <label>This App's Webhook URL</label>
+          <div style="display:flex;gap:8px;">
+            <input id="myWebhookUrl" type="text" readonly
+              style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:monospace;font-size:0.78rem;background:#f7faff;color:var(--text);outline:none;"/>
+            <button onclick="copyWebhookUrl()" class="btn btn-ghost btn-sm" title="Copy URL">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          <p style="font-size:0.72rem;color:var(--text-light);margin-top:5px;">
+            Copy this URL and add it as <code style="background:#e2ebf7;padding:1px 5px;border-radius:3px;">SOAP_NOTE_WEBHOOK_URL</code> in your intake form's environment variables.
+          </p>
+        </div>
+
+        <div class="field">
+          <label>Intake Form App URL <span style="font-weight:400;color:var(--text-light);text-transform:none;">(optional)</span></label>
+          <input id="intakeFormUrl" type="text" placeholder="https://your-intake-form.railway.app" />
+        </div>
+
+        <div class="info-box info-box-yellow" style="margin-bottom:18px;">
+          <p><strong><i class="fas fa-triangle-exclamation" style="margin-right:5px;"></i>Add to your intake form .env:</strong></p>
+          <pre id="envSnippet" style="margin-top:8px;background:rgba(0,0,0,0.06);border-radius:4px;padding:8px;font-size:0.75rem;font-family:monospace;overflow-x:auto;white-space:pre-wrap;"></pre>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button onclick="saveWebhookConfig()" class="btn btn-primary" style="flex:1;justify-content:center;">
+            <i class="fas fa-save"></i> Save Settings
+          </button>
+          <button onclick="closeWebhookConfig()" class="btn btn-ghost" style="flex:1;justify-content:center;">Cancel</button>
+        </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <p style="font-size:0.8rem;font-weight:700;color:var(--primary);margin-bottom:6px;">Manual Import</p>
+          <p style="font-size:0.75rem;color:var(--text-light);margin-bottom:8px;">Paste a client profile in JSON format:</p>
+          <textarea id="manualImportJson" rows="3"
+            placeholder='{"firstName":"Jane","lastName":"Smith","email":"jane@example.com",...}'
+            style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:monospace;font-size:0.75rem;outline:none;resize:vertical;"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+          <button onclick="importManualProfile()" class="btn btn-outline btn-sm" style="margin-top:8px;">
+            <i class="fas fa-file-import"></i> Import Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast"></div>
+
+  <!-- Muscle tooltip -->
+  <div id="muscleTooltip" class="muscle-tooltip" style="display:none;"></div>
+
+  <script>
+  // ============================================================
+  // CLIENT PROFILES (localStorage-based, synced via webhook)
+  // ============================================================
+  const CLIENT_PROFILES_KEY = 'flexion_soap_client_profiles';
+  const WEBHOOK_CONFIG_KEY  = 'flexion_soap_webhook_config';
+
+  function loadClientProfiles() {
+    try { return JSON.parse(localStorage.getItem(CLIENT_PROFILES_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveClientProfiles(profiles) {
+    localStorage.setItem(CLIENT_PROFILES_KEY, JSON.stringify(profiles));
+  }
+  function loadWebhookConfig() {
+    try { return JSON.parse(localStorage.getItem(WEBHOOK_CONFIG_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function saveWebhookConfigData(cfg) {
+    localStorage.setItem(WEBHOOK_CONFIG_KEY, JSON.stringify(cfg));
+  }
+
+  // Save a single profile (upsert by id or email)
+  function upsertClientProfile(profile) {
+    const profiles = loadClientProfiles();
+    const idx = profiles.findIndex(p => p.id === profile.id || (p.email && p.email === profile.email));
+    if (idx >= 0) profiles[idx] = { ...profiles[idx], ...profile, updatedAt: new Date().toISOString() };
+    else profiles.unshift({ ...profile, savedAt: new Date().toISOString() });
+    saveClientProfiles(profiles);
+    renderClientProfilesPreview();
+  }
+
+  // Delete a profile
+  function deleteClientProfile(id) {
+    if (!confirm('Remove this client profile?')) return;
+    const profiles = loadClientProfiles().filter(p => p.id !== id);
+    saveClientProfiles(profiles);
+    renderClientProfilesPreview();
+    filterClients();
+  }
+
+  // Render the quick-access chips in Step 1
+  function renderClientProfilesPreview() {
+    const profiles = loadClientProfiles();
+    const container = document.getElementById('clientProfilesPreview');
+    const noMsg = document.getElementById('noClientsMsg');
+    if (!container) return;
+    if (profiles.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 italic" id="noClientsMsg">No client profiles saved yet. Connect your Flexion &amp; Flow intake form to auto-populate clients, or upload a PDF below.</p>';
+      return;
+    }
+    if (noMsg) noMsg.remove();
+    // Show last 6 profiles as clickable chips
+    const recent = profiles.slice(0, 6);
+    container.innerHTML = recent.map(p => {
+      const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+      const initials = [(p.firstName||'')[0], (p.lastName||'')[0]].filter(Boolean).join('').toUpperCase();
+      const ago = p.savedAt ? timeAgo(p.savedAt) : '';
+      return \`<button onclick="loadClientProfile('\${p.id}')"
+        class="flex items-center gap-2 px-3 py-2 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-xl transition group text-left">
+        <div class="w-7 h-7 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center text-xs font-bold flex-shrink-0">\${initials || '?'}</div>
+        <div>
+          <div class="text-xs font-semibold text-slate-700">\${name || 'Unknown'}</div>
+          \${ago ? \`<div class="text-[10px] text-slate-400">\${ago}</div>\` : ''}
+        </div>
+      </button>\`;
+    }).join('');
+    if (profiles.length > 6) {
+      container.innerHTML += \`<button onclick="openClientBrowser()" class="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition text-xs text-slate-500">
+        <i class="fas fa-ellipsis"></i> +\${profiles.length - 6} more
+      </button>\`;
+    }
+    // Update webhook banner
+    const cfg = loadWebhookConfig();
+    const banner = document.getElementById('webhookBanner');
+    const urlDisplay = document.getElementById('webhookUrlDisplay');
+    if (cfg.myUrl && banner && urlDisplay) {
+      banner.style.display = 'block';
+      urlDisplay.textContent = cfg.myUrl;
+    }
+  }
+
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return days + ' days ago';
+    const months = Math.floor(days / 30);
+    return months + ' month' + (months > 1 ? 's' : '') + ' ago';
+  }
+
+  // Load a client profile into the Step 1 form
+  function loadClientProfile(id) {
+    const profiles = loadClientProfiles();
+    const p = profiles.find(x => x.id === id);
+    if (!p) return;
+
+    const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+
+    // Fill in all fields
+    const setVal = (elId, val) => { const el = document.getElementById(elId); if (el && val) el.value = val; };
+    setVal('clientFirstName',  p.firstName);
+    setVal('clientLastName',   p.lastName);
+    setVal('clientEmail',      p.email || '');
+    setVal('clientDOB',        p.dob ? p.dob.split('T')[0] : '');
+    setVal('chiefComplaint',   p.chiefComplaint || p.primaryConcern || '');
+    setVal('painLevel',        p.painIntensity != null ? p.painIntensity : '');
+    setVal('medications',      p.medications || '');
+
+    // Build a structured intake summary
+    const lines = [];
+    const add = (label, val) => { if (val && String(val).trim() && !/^no$/i.test(String(val).trim())) lines.push(label + ': ' + String(val).trim()); };
+    add('Client Name',       name);
+    add('Date of Birth',     p.dob ? p.dob.split('T')[0] : '');
+    add('Email',             p.email);
+    add('Phone',             p.phone);
+    add('Occupation',        p.occupation);
+    add('Reason for Visit',  p.chiefComplaint || p.primaryConcern);
+    add('Pain Intensity',    p.painIntensity != null ? p.painIntensity + '/10' : '');
+    add('Areas to Avoid',    p.areasToAvoid);
+    add('Medications',       p.medications);
+    add('Allergies',         p.allergies);
+    add('Medical Conditions',p.medicalConditions);
+    add('Last Treatment',    p.lastTreatment);
+    add('Submitted',         p.submittedAt ? new Date(p.submittedAt).toLocaleDateString('en-AU') : '');
+
+    const intakeEl = document.getElementById('intakeFormData');
+    if (intakeEl) intakeEl.value = lines.join('\\n');
+
+    closeClientBrowser();
+    updateSummaryPanel();
+    showCopyFeedback('\\u2705 Client loaded: ' + name);
+  }
+
+  // ============================================================
+  // CLIENT BROWSER MODAL
+  // ============================================================
+  function openClientBrowser() {
+    const modal = document.getElementById('clientBrowserModal');
+    modal.style.display = 'flex';
+    
+    filterClients();
+    document.getElementById('clientSearch').focus();
+  }
+  function closeClientBrowser() {
+    const modal = document.getElementById('clientBrowserModal');
+    modal.style.display = 'none';
+    
+  }
+
+  function filterClients() {
+    const query = (document.getElementById('clientSearch')?.value || '').toLowerCase().trim();
+    const profiles = loadClientProfiles();
+    const filtered = query
+      ? profiles.filter(p =>
+          [p.firstName, p.lastName, p.email, p.phone].join(' ').toLowerCase().includes(query))
+      : profiles;
+
+    const list = document.getElementById('clientList');
+    const countEl = document.getElementById('clientCount');
+    if (!list) return;
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<p style="font-size:0.82rem;color:var(--text-light);text-align:center;padding:32px 0;"><i class="fas fa-user-slash" style="display:block;font-size:1.8rem;margin-bottom:8px;"></i>' +
+        (query ? 'No clients match "' + query + '"' : 'No client profiles saved yet.') + '</p>';
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+
+    if (countEl) countEl.textContent = filtered.length + ' client' + (filtered.length !== 1 ? 's' : '');
+
+    list.innerHTML = filtered.map(p => {
+      const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+      const initials = [(p.firstName||'')[0], (p.lastName||'')[0]].filter(Boolean).join('').toUpperCase();
+      const dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString('en-AU') : '';
+      const tags = [];
+      if (p.source === 'flexion-intake-form') tags.push('<span class="px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded text-[10px]">Intake Form</span>');
+      if (p.medicalConditions) tags.push('<span class="px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded text-[10px]">Medical Hx</span>');
+      if (p.medications)       tags.push('<span class="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px]">Medications</span>');
+      return \`<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-violet-200 hover:bg-violet-50 transition cursor-pointer group" onclick="loadClientProfile('\${p.id}')">
+        <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center font-bold flex-shrink-0">\${initials || '?'}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-slate-800 text-sm">\${name || 'Unknown Client'}</div>
+          <div class="text-xs text-slate-400">\${[p.email, p.phone].filter(Boolean).join(' · ')}</div>
+          <div class="flex flex-wrap gap-1 mt-1">\${tags.join('')}</div>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="text-xs text-slate-400">\${dateStr}</div>
+          <button onclick="event.stopPropagation(); deleteClientProfile('\${p.id}')" class="mt-1 text-[10px] text-slate-300 hover:text-red-500 transition hidden group-hover:block">
+            <i class="fas fa-trash"></i> Remove
+          </button>
+        </div>
+      </div>\`;
+    }).join('');
+  }
+
+  // ============================================================
+  // WEBHOOK CONFIG MODAL
+  // ============================================================
+  function openWebhookConfig() {
+    const modal = document.getElementById('webhookModal');
+    modal.style.display = 'flex';
+    
+
+    const myUrl = window.location.origin + '/api/intake-webhook';
+    const urlInput = document.getElementById('myWebhookUrl');
+    if (urlInput) urlInput.value = myUrl;
+
+    const envSnippet = document.getElementById('envSnippet');
+    if (envSnippet) envSnippet.textContent = 'SOAP_NOTE_WEBHOOK_URL=' + myUrl;
+
+    const cfg = loadWebhookConfig();
+    const intakeInput = document.getElementById('intakeFormUrl');
+    if (intakeInput && cfg.intakeFormUrl) intakeInput.value = cfg.intakeFormUrl;
+  }
+  function closeWebhookConfig() {
+    const modal = document.getElementById('webhookModal');
+    modal.style.display = 'none';
+    
+  }
+  function copyWebhookUrl() {
+    const val = document.getElementById('myWebhookUrl')?.value;
+    if (val) { navigator.clipboard.writeText(val); showCopyFeedback('\\u2705 Webhook URL copied!'); }
+  }
+  function saveWebhookConfig() {
+    const intakeFormUrl = document.getElementById('intakeFormUrl')?.value.trim() || '';
+    const myUrl = document.getElementById('myWebhookUrl')?.value.trim() || '';
+    saveWebhookConfigData({ intakeFormUrl, myUrl });
+    closeWebhookConfig();
+    renderClientProfilesPreview();
+    showCopyFeedback('\\u2705 Settings saved');
+  }
+  function importManualProfile() {
+    const raw = document.getElementById('manualImportJson')?.value.trim();
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      if (!data.firstName && !data.lastName) { alert('Profile must have at least firstName or lastName.'); return; }
+      if (!data.id) data.id = 'manual-' + Date.now();
+      data.source = 'manual-import';
+      data.savedAt = new Date().toISOString();
+      upsertClientProfile(data);
+      document.getElementById('manualImportJson').value = '';
+      showCopyFeedback('\\u2705 Profile imported: ' + [data.firstName, data.lastName].filter(Boolean).join(' '));
+      filterClients();
+    } catch(e) {
+      alert('Invalid JSON. Please check the format and try again.');
+    }
+  }
+
+  // ============================================================
+  // HANDLE INCOMING WEBHOOK DATA (when page is the target)
+  // The intake form can also redirect to this page with ?clientData=...
+  // ============================================================
+  function checkUrlClientData() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('clientData');
+      if (!encoded) return;
+      const profile = JSON.parse(atob(encoded));
+      if (profile && (profile.firstName || profile.lastName)) {
+        if (!profile.id) profile.id = 'url-' + Date.now();
+        profile.source = profile.source || 'url-import';
+        profile.savedAt = new Date().toISOString();
+        upsertClientProfile(profile);
+        // Auto-load into form
+        loadClientProfile(profile.id);
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+        showCopyFeedback('\\u2705 Client data imported from intake form!');
+      }
+    } catch(e) {}
+  }
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  const state = {
+    currentStep: 1,
+    currentView: 'anterior',
+    currentGender: 'male',
+    currentRegion: 'all',
+    muscleSearch: '',
+    muscleStates: {}, // muscleId -> 'treated' | 'follow-up'
+    pdfText: '',
+    soapData: null,
+    lastAccountNumber: null, // set after SOAP auto-save
+    lastSessionId: null      // set after SOAP auto-save
+  };
+
+  const TECHNIQUES = [
+    'Swedish Massage', 'Deep Tissue', 'Trigger Point Therapy',
+    'Myofascial Release', 'Neuromuscular Therapy', 'Sports Massage',
+    'Hot Stone', 'Lymphatic Drainage', 'Stretching / PNF', 'Cupping',
+    'Instrument-Assisted (IASTM)', 'Craniosacral'
+  ];
+
+  // ============================================================
+  // MUSCLE MAP IMAGE DATA
+  // ============================================================
+  const MUSCLES = [
+    // ─── ANTERIOR ───────────────────────────────────────────────
+    // SVG viewBox: 0 0 400 920 (male), body spans X:90-350, Y:15-910
+    // NECK
+    { id:'scm_l', name:'Sternocleidomastoid (L)', group:'Neck', view:'anterior',
+      points:'175,110 172,118 168,128 170,140 176,143 182,135 183,123 180,113' },
+    { id:'scm_r', name:'Sternocleidomastoid (R)', group:'Neck', view:'anterior',
+      points:'225,110 228,118 232,128 230,140 224,143 218,135 217,123 220,113' },
+    // SHOULDER
+    { id:'deltoid_ant_l', name:'Anterior Deltoid (L)', group:'Shoulder', view:'anterior',
+      points:'145,148 133,155 118,168 105,185 98,202 103,218 115,222 130,210 143,195 152,175 152,158' },
+    { id:'deltoid_ant_r', name:'Anterior Deltoid (R)', group:'Shoulder', view:'anterior',
+      points:'255,148 267,155 282,168 298,185 305,202 300,218 288,222 273,210 260,195 250,175 250,158' },
+    // CHEST
+    { id:'pec_major_l', name:'Pectoralis Major (L)', group:'Chest', view:'anterior',
+      points:'198,158 185,162 162,168 138,178 115,192 103,210 108,238 125,255 150,262 175,258 195,245 200,225 200,200' },
+    { id:'pec_major_r', name:'Pectoralis Major (R)', group:'Chest', view:'anterior',
+      points:'202,158 215,162 240,168 265,178 290,192 300,210 295,238 278,255 252,262 228,258 205,245 200,225 200,200' },
+    // BICEPS
+    { id:'biceps_l', name:'Biceps Brachii (L)', group:'Upper Arm', view:'anterior',
+      points:'140,225 130,235 115,250 100,275 88,300 83,330 85,355 92,370 105,372 118,362 128,338 135,308 140,278 143,250' },
+    { id:'biceps_r', name:'Biceps Brachii (R)', group:'Upper Arm', view:'anterior',
+      points:'262,225 272,235 288,250 303,275 315,300 320,330 318,355 310,370 298,372 285,362 275,338 268,308 263,278 260,250' },
+    // FOREARM
+    { id:'forearm_flex_l', name:'Forearm Flexors (L)', group:'Forearm', view:'anterior',
+      points:'125,375 112,385 95,400 78,420 65,440 63,458 68,468 80,470 95,460 110,442 122,420 130,400' },
+    { id:'forearm_flex_r', name:'Forearm Flexors (R)', group:'Forearm', view:'anterior',
+      points:'278,375 290,385 308,400 325,420 338,440 340,458 335,468 323,470 308,460 293,442 282,420 273,400' },
+    // ABS
+    { id:'rectus_abdominis', name:'Rectus Abdominis', group:'Core', view:'anterior',
+      points:'185,262 183,288 182,315 182,345 184,375 188,405 195,422 205,425 215,422 220,405 220,375 220,345 220,315 218,288 215,262 200,258' },
+    { id:'oblique_l', name:'External Oblique (L)', group:'Core', view:'anterior',
+      points:'182,260 175,275 165,298 152,325 140,355 135,385 138,410 148,420 162,415 175,398 182,375 183,345 183,312' },
+    { id:'oblique_r', name:'External Oblique (R)', group:'Core', view:'anterior',
+      points:'220,260 228,275 238,298 252,325 262,355 268,385 265,410 255,420 242,415 228,398 220,375 220,345 220,312' },
+    { id:'serratus_l', name:'Serratus Anterior (L)', group:'Core', view:'anterior',
+      points:'152,198 145,215 143,235 148,255 158,260 165,250 165,228 160,208' },
+    { id:'serratus_r', name:'Serratus Anterior (R)', group:'Core', view:'anterior',
+      points:'250,198 258,215 260,235 255,255 245,260 238,250 238,228 243,208' },
+    // HIP
+    { id:'iliopsoas_l', name:'Iliopsoas / Hip Flexor (L)', group:'Hip', view:'anterior',
+      points:'178,428 170,442 165,460 168,478 175,490 185,492 193,482 195,462 190,442 183,428' },
+    { id:'iliopsoas_r', name:'Iliopsoas / Hip Flexor (R)', group:'Hip', view:'anterior',
+      points:'225,428 232,442 238,460 235,478 228,490 218,492 210,482 208,462 212,442 220,428' },
+    { id:'tfl_l', name:'Tensor Fascia Latae (L)', group:'Hip', view:'anterior',
+      points:'148,432 138,445 125,462 118,480 122,498 133,505 145,500 155,485 158,462 155,442' },
+    { id:'tfl_r', name:'Tensor Fascia Latae (R)', group:'Hip', view:'anterior',
+      points:'255,432 265,445 278,462 285,480 282,498 270,505 258,500 248,485 245,462 248,442' },
+    // THIGH
+    { id:'quad_l', name:'Quadriceps (L)', group:'Thigh', view:'anterior',
+      points:'158,498 145,515 128,540 115,568 108,598 110,628 118,648 132,658 148,658 162,648 170,628 172,598 168,568 160,540 155,515' },
+    { id:'quad_r', name:'Quadriceps (R)', group:'Thigh', view:'anterior',
+      points:'245,498 258,515 275,540 290,568 295,598 292,628 285,648 270,658 255,658 242,648 235,628 232,598 235,568 242,540 248,515' },
+    { id:'adductors_l', name:'Adductors (L)', group:'Thigh', view:'anterior',
+      points:'195,500 192,520 188,548 185,578 183,608 185,635 192,652 200,658 208,655 210,630 208,602 205,572 202,542 200,515' },
+    { id:'adductors_r', name:'Adductors (R)', group:'Thigh', view:'anterior',
+      points:'208,500 210,520 215,548 218,578 220,608 218,635 212,652 205,658 198,655 194,630 195,602 198,572 202,542 205,515' },
+    { id:'sartorius_l', name:'Sartorius (L)', group:'Thigh', view:'anterior',
+      points:'162,498 155,515 152,540 153,570 158,600 165,630 170,655 177,655 178,630 172,600 168,570 168,540 168,515 170,498' },
+    { id:'sartorius_r', name:'Sartorius (R)', group:'Thigh', view:'anterior',
+      points:'242,498 248,515 252,540 252,570 248,600 242,630 238,655 230,655 230,630 235,600 235,570 235,540 235,515 235,498' },
+    // LOWER LEG
+    { id:'tibialis_ant_l', name:'Tibialis Anterior (L)', group:'Lower Leg', view:'anterior',
+      points:'168,675 160,692 155,715 155,742 158,765 163,778 172,782 180,778 185,762 183,735 178,710 172,688' },
+    { id:'tibialis_ant_r', name:'Tibialis Anterior (R)', group:'Lower Leg', view:'anterior',
+      points:'235,675 242,692 248,715 248,742 245,765 240,778 232,782 224,778 220,762 220,735 225,710 230,688' },
+    { id:'peroneals_l', name:'Peroneals (L)', group:'Lower Leg', view:'anterior',
+      points:'155,678 148,698 143,722 145,750 150,770 158,775 163,768 162,742 158,718 155,695' },
+    { id:'peroneals_r', name:'Peroneals (R)', group:'Lower Leg', view:'anterior',
+      points:'248,678 255,698 260,722 258,750 253,770 245,775 240,768 242,742 245,718 248,695' },
+
+    // ─── POSTERIOR ──────────────────────────────────────────────
+    // SVG viewBox: 0 0 400 920 (male), body center X:200
+    // NECK / UPPER BACK
+    { id:'upper_trap_l', name:'Upper Trapezius (L)', group:'Neck/Shoulder', view:'posterior',
+      points:'198,88 190,98 178,115 162,135 145,155 130,175 118,195 112,215 122,228 140,228 162,220 182,205 198,185 200,160' },
+    { id:'upper_trap_r', name:'Upper Trapezius (R)', group:'Neck/Shoulder', view:'posterior',
+      points:'202,88 210,98 222,115 238,135 255,155 270,175 282,195 288,215 278,228 260,228 238,220 218,205 202,185 200,160' },
+    { id:'levator_scap_l', name:'Levator Scapulae (L)', group:'Neck', view:'posterior',
+      points:'190,88 185,98 180,112 182,128 188,132 194,125 196,110 193,95' },
+    { id:'levator_scap_r', name:'Levator Scapulae (R)', group:'Neck', view:'posterior',
+      points:'210,88 215,98 220,112 218,128 212,132 206,125 204,110 207,95' },
+    // SHOULDERS POSTERIOR
+    { id:'deltoid_post_l', name:'Posterior Deltoid (L)', group:'Shoulder', view:'posterior',
+      points:'118,193 105,205 93,222 88,242 93,262 108,270 125,265 138,248 142,228 135,208' },
+    { id:'deltoid_post_r', name:'Posterior Deltoid (R)', group:'Shoulder', view:'posterior',
+      points:'282,193 295,205 308,222 312,242 308,262 295,270 278,265 262,248 258,228 265,208' },
+    // ROTATOR CUFF / MID BACK
+    { id:'infraspinatus_l', name:'Infraspinatus (L)', group:'Rotator Cuff', view:'posterior',
+      points:'145,188 135,205 130,228 135,252 148,262 165,265 182,258 195,242 198,222 192,200 175,188' },
+    { id:'infraspinatus_r', name:'Infraspinatus (R)', group:'Rotator Cuff', view:'posterior',
+      points:'255,188 265,205 270,228 265,252 252,262 235,265 218,258 205,242 202,222 208,200 225,188' },
+    { id:'teres_l', name:'Teres Major / Minor (L)', group:'Rotator Cuff', view:'posterior',
+      points:'132,252 125,268 125,290 132,305 145,308 158,298 160,278 152,260' },
+    { id:'teres_r', name:'Teres Major / Minor (R)', group:'Rotator Cuff', view:'posterior',
+      points:'268,252 275,268 275,290 268,305 255,308 242,298 240,278 248,260' },
+    // RHOMBOIDS / MIDDLE TRAP (center spine area)
+    { id:'rhomboids_l', name:'Rhomboids (L)', group:'Upper Back', view:'posterior',
+      points:'198,162 190,172 180,188 175,208 178,228 188,235 200,230 200,205 200,180' },
+    { id:'rhomboids_r', name:'Rhomboids (R)', group:'Upper Back', view:'posterior',
+      points:'202,162 210,172 220,188 225,208 222,228 212,235 200,230 200,205 200,180' },
+    // TRICEPS
+    { id:'triceps_l', name:'Triceps Brachii (L)', group:'Upper Arm', view:'posterior',
+      points:'112,220 102,235 90,258 82,285 80,315 85,345 95,362 108,365 120,355 130,330 135,298 132,268 122,242' },
+    { id:'triceps_r', name:'Triceps Brachii (R)', group:'Upper Arm', view:'posterior',
+      points:'288,220 298,235 312,258 320,285 322,315 318,345 308,362 295,365 282,355 272,330 268,298 272,268 280,242' },
+    // FOREARM POSTERIOR
+    { id:'forearm_ext_l', name:'Forearm Extensors (L)', group:'Forearm', view:'posterior',
+      points:'98,368 85,385 72,405 62,428 60,448 65,462 78,465 92,455 105,435 115,412 120,390' },
+    { id:'forearm_ext_r', name:'Forearm Extensors (R)', group:'Forearm', view:'posterior',
+      points:'305,368 318,385 332,405 342,428 342,448 338,462 325,465 312,455 298,435 290,412 282,390' },
+    // LATS (big wing-shaped back muscles)
+    { id:'lats_l', name:'Latissimus Dorsi (L)', group:'Mid/Lower Back', view:'posterior',
+      points:'140,230 130,255 118,285 110,318 108,348 112,378 122,398 138,408 155,405 168,390 172,368 165,338 155,305 148,272 145,245' },
+    { id:'lats_r', name:'Latissimus Dorsi (R)', group:'Mid/Lower Back', view:'posterior',
+      points:'262,230 272,255 285,285 292,318 295,348 292,378 282,398 265,408 248,405 235,390 230,368 238,338 248,305 255,272 258,245' },
+    // ERECTOR SPINAE (vertical columns flanking spine)
+    { id:'erector_l', name:'Erector Spinae (L)', group:'Lower Back', view:'posterior',
+      points:'185,248 180,268 175,298 172,328 172,358 175,388 180,408 190,412 198,405 200,378 200,348 198,315 195,282 192,255' },
+    { id:'erector_r', name:'Erector Spinae (R)', group:'Lower Back', view:'posterior',
+      points:'215,248 220,268 225,298 228,328 228,358 225,388 220,408 210,412 202,405 200,378 200,348 202,315 205,282 208,255' },
+    // QUADRATUS LUMBORUM
+    { id:'ql_l', name:'Quadratus Lumborum (L)', group:'Lower Back', view:'posterior',
+      points:'178,385 172,400 170,420 175,435 185,440 195,432 198,412 195,392' },
+    { id:'ql_r', name:'Quadratus Lumborum (R)', group:'Lower Back', view:'posterior',
+      points:'222,385 228,400 230,420 225,435 215,440 205,432 202,412 205,392' },
+    // GLUTES
+    { id:'glut_max_l', name:'Gluteus Maximus (L)', group:'Glutes', view:'posterior',
+      points:'155,435 142,452 132,475 128,500 132,528 142,545 158,552 175,548 190,535 198,515 200,490 198,462 188,442 172,435' },
+    { id:'glut_max_r', name:'Gluteus Maximus (R)', group:'Glutes', view:'posterior',
+      points:'248,435 262,452 272,475 275,500 272,528 262,545 248,552 232,548 215,535 205,515 202,490 205,462 215,442 232,435' },
+    { id:'glut_med_l', name:'Gluteus Medius (L)', group:'Glutes', view:'posterior',
+      points:'148,408 138,422 132,440 135,458 145,468 158,470 170,460 175,442 172,422 162,410' },
+    { id:'glut_med_r', name:'Gluteus Medius (R)', group:'Glutes', view:'posterior',
+      points:'255,408 265,422 272,440 268,458 258,468 245,470 232,460 228,442 232,422 242,410' },
+    { id:'piriformis_l', name:'Piriformis (L)', group:'Glutes/Hip', view:'posterior',
+      points:'178,472 170,485 170,502 178,512 192,515 202,505 200,488 190,475' },
+    { id:'piriformis_r', name:'Piriformis (R)', group:'Glutes/Hip', view:'posterior',
+      points:'222,472 230,485 230,502 222,512 208,515 198,505 200,488 210,475' },
+    // HAMSTRINGS
+    { id:'biceps_fem_l', name:'Biceps Femoris (L)', group:'Hamstrings', view:'posterior',
+      points:'158,555 148,575 138,605 130,638 128,668 132,692 140,705 155,708 168,698 175,672 175,640 170,608 162,578' },
+    { id:'biceps_fem_r', name:'Biceps Femoris (R)', group:'Hamstrings', view:'posterior',
+      points:'245,555 255,575 265,605 272,638 275,668 272,692 265,705 252,708 240,698 232,672 228,640 232,608 242,578' },
+    { id:'semimem_l', name:'Semimembranosus / Semitendinosus (L)', group:'Hamstrings', view:'posterior',
+      points:'192,555 182,578 175,608 172,638 172,668 175,695 185,708 198,710 208,700 212,672 210,640 205,605 200,575' },
+    { id:'semimem_r', name:'Semimembranosus / Semitendinosus (R)', group:'Hamstrings', view:'posterior',
+      points:'210,555 222,578 228,608 230,638 230,668 228,695 218,708 205,710 198,700 195,672 195,640 198,605 202,575' },
+    // CALF
+    { id:'gastroc_l', name:'Gastrocnemius (L)', group:'Calf', view:'posterior',
+      points:'148,712 138,732 130,758 128,785 132,808 142,822 155,825 168,818 175,800 175,772 170,745 160,722' },
+    { id:'gastroc_r', name:'Gastrocnemius (R)', group:'Calf', view:'posterior',
+      points:'255,712 265,732 272,758 275,785 272,808 262,822 250,825 238,818 228,800 228,772 235,745 248,722' },
+    { id:'soleus_l', name:'Soleus (L)', group:'Calf', view:'posterior',
+      points:'155,802 145,820 140,842 142,862 150,872 162,875 172,868 178,848 178,825 168,808' },
+    { id:'soleus_r', name:'Soleus (R)', group:'Calf', view:'posterior',
+      points:'248,802 258,820 262,842 262,862 255,872 242,875 232,868 225,848 225,825 238,808' },
+  ];
+
+  // Convenience lookups
+  const ANTERIOR_MUSCLES = MUSCLES.filter(m => m.view === 'anterior');
+  const POSTERIOR_MUSCLES = MUSCLES.filter(m => m.view === 'posterior');
+
+  // Muscle regions for easier browsing (grouped by body zone)
+  const MUSCLE_REGIONS = [
+    { id: 'all', label: 'All Muscles', muscles: MUSCLES.map(m => m.id) },
+    { id: 'neck', label: 'Neck', muscles: ['scm_l', 'scm_r', 'levator_scap_l', 'levator_scap_r'] },
+    { id: 'shoulder', label: 'Shoulder & Rotator Cuff', muscles: ['deltoid_ant_l', 'deltoid_ant_r', 'deltoid_post_l', 'deltoid_post_r', 'serratus_l', 'serratus_r', 'infraspinatus_l', 'infraspinatus_r', 'teres_l', 'teres_r'] },
+    { id: 'back', label: 'Back', muscles: ['upper_trap_l', 'upper_trap_r', 'rhomboids_l', 'rhomboids_r', 'lats_l', 'lats_r', 'erector_l', 'erector_r', 'ql_l', 'ql_r'] },
+    { id: 'chest', label: 'Chest & Core', muscles: ['pec_major_l', 'pec_major_r', 'rectus_abdominis', 'oblique_l', 'oblique_r'] },
+    { id: 'arm', label: 'Upper Arm', muscles: ['biceps_l', 'biceps_r', 'triceps_l', 'triceps_r'] },
+    { id: 'forearm', label: 'Forearm', muscles: ['forearm_flex_l', 'forearm_flex_r', 'forearm_ext_l', 'forearm_ext_r'] },
+    { id: 'hips', label: 'Hips & Glutes', muscles: ['iliopsoas_l', 'iliopsoas_r', 'tfl_l', 'tfl_r', 'glut_max_l', 'glut_max_r', 'glut_med_l', 'glut_med_r', 'piriformis_l', 'piriformis_r'] },
+    { id: 'thigh', label: 'Thigh', muscles: ['quad_l', 'quad_r', 'adductors_l', 'adductors_r', 'sartorius_l', 'sartorius_r', 'biceps_fem_l', 'biceps_fem_r', 'semimem_l', 'semimem_r'] },
+    { id: 'leg', label: 'Lower Leg', muscles: ['tibialis_ant_l', 'tibialis_ant_r', 'peroneals_l', 'peroneals_r', 'gastroc_l', 'gastroc_r', 'soleus_l', 'soleus_r'] }
+  ];
+
+  // ============================================================
+  // IMAGE-BASED MUSCLE MAP
+  // ============================================================
+  // The image viewBox is 400×870 (normalised from actual half-image).
+  // For the MALE image (890×1024): each half = 445×1024, normalised to 400×870
+  // For the FEMALE image (862×1024): each half = 431×1024, normalised to 400×870
+  // Image is positioned so only the correct half is visible:
+  //   anterior → show left half  (image translateX 0)
+  //   posterior → show right half (image translateX -100%)
+
+  function renderMuscleMap() {
+    const container = document.getElementById('muscleMapContainer');
+    const tabsContainer = document.getElementById('regionTabs');
+    const gender    = state.currentGender;   // 'male' | 'female'
+    const view      = state.currentView;     // 'anterior' | 'posterior'
+    let muscles     = view === 'anterior' ? ANTERIOR_MUSCLES : POSTERIOR_MUSCLES;
+    const imgSrc    = \`/muscle-map-\${gender}.png\`;
+
+    // Filter muscles by current region
+    const region = MUSCLE_REGIONS.find(r => r.id === state.currentRegion);
+    if (region) {
+      muscles = muscles.filter(m => region.muscles.includes(m.id));
+    }
+
+    // Render region tabs
+    if (tabsContainer) {
+      tabsContainer.innerHTML = MUSCLE_REGIONS.map(r => {
+        const isActive = state.currentRegion === r.id;
+        return \`<button onclick="setRegion('\${r.id}')" class="btn btn-sm" style="background:\${isActive ? 'var(--primary)' : 'var(--bg)'};color:\${isActive ? 'white' : 'var(--text-light)'};border:1px solid \${isActive ? 'var(--primary)' : 'var(--border)'};">
+          \${r.label}
+        </button>\`;
+      }).join('');
+    }
+
+    // Image natural dimensions
+    const imgW = gender === 'male' ? 890 : 862;
+    const halfW = imgW / 2;
+    const imgH = 1024;
+
+    // We display a 400px wide viewport and scale proportionally
+    // SVG viewBox per half: halfW × imgH, displayed at width=400, height=auto
+    const vbH = Math.round(imgH / (halfW / 400));
+
+    // Translate the image: anterior = left half (translateX 0), posterior = right half (translateX -50%)
+    const imgTranslate = view === 'anterior' ? '0' : '-50%';
+
+    // Scale muscle polygons to match each gender's body proportions.
+    // Coordinates were authored for the MALE figure (SVG 400×920).
+    // Female body proportions differ by region (computed from image pixel analysis):
+    //   Y=0-130  (head/neck):  scale≈0.60, center shifts to X:214
+    //   Y=130-220 (shoulders): scale≈0.69, center X:215
+    //   Y=220-360 (chest/biceps): scale≈0.80, center X:215
+    //   Y=360-470 (forearms/abdomen): scale≈0.91, center X:215
+    //   Y=470-535 (hips): scale≈1.08 (female hips wider), center X:214
+    //   Y=535-680 (quads): scale≈0.86, center X:215
+    //   Y=680-780 (shins): scale≈0.69, center X:216
+    //   Y=780+    (feet): scale≈0.75, center X:215
+    const maleVbH  = 920;
+    const scaleY   = gender === 'female' ? (vbH / maleVbH) : 1;
+
+    function scalePoints(pts) {
+      if (gender !== 'female') return pts;
+      return pts.split(' ').map(pair => {
+        const [x, y] = pair.split(',').map(Number);
+        let sx, cx;
+        // Y-based horizontal scale toward female body proportions
+        if      (y < 130) { sx = 0.60; cx = 214; }
+        else if (y < 220) { sx = 0.69; cx = 215; }
+        else if (y < 360) { sx = 0.80; cx = 215; }
+        else if (y < 470) { sx = 0.91; cx = 215; }
+        else if (y < 535) { sx = 1.08; cx = 214; }
+        else if (y < 680) { sx = 0.86; cx = 215; }
+        else if (y < 780) { sx = 0.69; cx = 216; }
+        else              { sx = 0.75; cx = 215; }
+        const nx = Math.round((x - 205) * sx + cx);  // male center ~205
+        const ny = Math.round(y * scaleY);
+        return nx + ',' + ny;
+      }).join(' ');
+    }
+
+    const musclePaths = muscles.map(m => {
+      const st  = state.muscleStates[m.id];
+      let fill  = 'rgba(91,163,217,0.40)';
+      let stroke = 'rgba(36,99,163,0.95)';
+      let sw    = '2';
+      if (st === 'treated')   { fill = 'rgba(56,161,105,0.45)';  stroke = '#276749'; sw = '2'; }
+      if (st === 'follow-up') { fill = 'rgba(214,158,46,0.45)';  stroke = '#b7791f'; sw = '2'; }
+      const pts = gender === 'female' ? scalePoints(m.points) : m.points;
+      return \`<polygon
+        class="muscle-hit"
+        points="\${pts}"
+        fill="\${fill}" stroke="\${stroke}" stroke-width="\${sw}"
+        data-id="\${m.id}" data-name="\${m.name}"
+        style="cursor:pointer;transition:all 0.15s;"
+        onmouseenter="showTooltip(event,this.dataset.name)"
+        onmouseleave="hideTooltip()"
+        onclick="toggleMuscle(this.dataset.id,this.dataset.name)"/>\`;
+    }).join('\\n');
+
+    // Render the map at full container width, allow vertical scroll for tall aspect ratio
+    // Each half dimensions: male=445×1024, female=431×1024 (nearly 1:2.3 aspect)
+    // At 480px wide the map would be ~1100px tall — use a scrollable container with max-height
+
+    container.innerHTML = \`
+      <div style="position:relative;width:100%;padding-bottom:\${Math.round(imgH/halfW*100)}%;overflow:hidden;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:#f8fafc;">
+        <!-- Base image — 200% width, translate to show correct half -->
+        <img src="\${imgSrc}" alt="Muscle map"
+          style="position:absolute;top:0;left:0;width:200%;height:100%;transform:translateX(\${imgTranslate});pointer-events:none;object-fit:fill;"
+          onerror="this.style.opacity='0.2'"/>
+        <!-- SVG overlay — covers the same half exactly -->
+        <svg viewBox="0 0 400 \${vbH}"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+          <g style="pointer-events:all;">
+            \${musclePaths}
+          </g>
+        </svg>
+      </div>
+    \`;
+  }
+
+
+  // ============================================================
+  // INITIALIZE
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    // Set today's date
+    document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+    
+    // Render techniques
+    renderTechniques();
+    
+    // Render muscle map and action panel
+    renderMuscleMap();
+    renderMuscleActionPanel();
+
+    const muscleSearchInput = document.getElementById('muscleSearchInput');
+    if (muscleSearchInput) {
+      muscleSearchInput.addEventListener('input', (e) => handleMuscleSearch(e.target.value));
+    }
+    
+    updateSummaryPanel();
+
+    // Load client profiles from localStorage
+    renderClientProfilesPreview();
+
+    // Check if client data was passed via URL (from intake form redirect)
+    checkUrlClientData();
+
+    // Close modals on backdrop click
+    document.getElementById('clientBrowserModal').addEventListener('click', function(e) {
+      if (e.target === this) closeClientBrowser();
+    });
+    document.getElementById('webhookModal').addEventListener('click', function(e) {
+      if (e.target === this) closeWebhookConfig();
+    });
+    document.getElementById('clientAccountsModal').addEventListener('click', function(e) {
+      if (e.target === this) closeClientAccounts();
+    });
+    document.getElementById('clientFileModal').addEventListener('click', function(e) {
+      if (e.target === this) closeClientFile();
+    });
+    document.getElementById('sessionViewModal').addEventListener('click', function(e) {
+      if (e.target === this) closeSessionView();
+    });
+  });
+
+  function renderTechniques() {
+    const container = document.getElementById('techniqueCheckboxes');
+    container.innerHTML = TECHNIQUES.map(t => \`
+      <label class="technique-item">
+        <input type="checkbox" name="technique" value="\${t}"/>
+        <span>\${t}</span>
+      </label>
+    \`).join('');
+  }
+
+  // ============================================================
+  // REGION FILTERING & MUSCLE SELECTION
+  // ============================================================
+  function setRegion(regionId) {
+    state.currentRegion = regionId;
+    renderMuscleMap();
+    renderMuscleActionPanel();
+  }
+
+  function handleMuscleSearch(value) {
+    state.muscleSearch = (value || '').trim().toLowerCase();
+    renderMuscleActionPanel();
+  }
+
+  function renderMuscleActionPanel() {
+    const panel = document.getElementById('muscleActionPanel');
+    if (!panel) return;
+
+    const region = MUSCLE_REGIONS.find(r => r.id === state.currentRegion);
+    if (!region) return;
+
+    const allMuscles = [...ANTERIOR_MUSCLES, ...POSTERIOR_MUSCLES];
+    const regionMuscles = allMuscles.filter(m => region.muscles.includes(m.id));
+    const visibleMuscles = state.muscleSearch
+      ? regionMuscles.filter(m => m.name.toLowerCase().includes(state.muscleSearch) || m.group.toLowerCase().includes(state.muscleSearch))
+      : regionMuscles;
+
+    if (visibleMuscles.length === 0) {
+      panel.innerHTML = '<p style="font-size:0.8rem;color:var(--text-light);padding:16px;text-align:center;">No muscles match your search.</p>';
+      return;
+    }
+
+    panel.innerHTML = visibleMuscles.map(m => {
+      const st = state.muscleStates[m.id];
+      const treatedClass = st === 'treated' ? 'background:#e6f7ed;border-color:#c6f6d5;' : '';
+      const followupClass = st === 'follow-up' ? 'background:#fef9e8;border-color:#fde68a;' : '';
+      const bgStyle = treatedClass || followupClass || '';
+      
+      return \`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;\${bgStyle}transition:all 0.15s;">
+          <div>
+            <div style="font-size:0.85rem;font-weight:600;color:var(--text);">\${m.name}</div>
+            <div style="font-size:0.72rem;color:var(--text-light);">\${m.group}</div>
+          </div>
+          <div style="display:flex;gap:5px;">
+            <button onclick="setMuscleStatus('\${m.id}', 'treated')" class="btn btn-sm" style="background:\${st === 'treated' ? '#38a169' : 'var(--bg)'};color:\${st === 'treated' ? 'white' : 'var(--text-light)'};border:1px solid \${st === 'treated' ? '#276749' : 'var(--border)'};" title="Treat">
+              <i class="fas fa-check"></i>
+            </button>
+            <button onclick="setMuscleStatus('\${m.id}', 'follow-up')" class="btn btn-sm" style="background:\${st === 'follow-up' ? '#d69e2e' : 'var(--bg)'};color:\${st === 'follow-up' ? 'white' : 'var(--text-light)'};border:1px solid \${st === 'follow-up' ? '#b7791f' : 'var(--border)'};" title="Follow-up">
+              <i class="fas fa-clock"></i>
+            </button>
+            <button onclick="setMuscleStatus('\${m.id}', 'clear')" class="btn btn-sm btn-ghost" style="min-width:38px;padding:6px 8px;" title="Clear">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      \`;
+    }).join('');
+  }
+
+  function setMuscleStatus(id, status) {
+    if (status === 'clear') {
+      delete state.muscleStates[id];
+    } else {
+      state.muscleStates[id] = status; // 'treated' or 'follow-up'
+    }
+    renderMuscleMap();
+    renderMuscleActionPanel();
+    updateMuscleLists();
+  }
+
+
+  function toggleMuscle(id, name) {
+    const current = state.muscleStates[id];
+    if (!current) {
+      state.muscleStates[id] = 'treated';
+    } else if (current === 'treated') {
+      state.muscleStates[id] = 'follow-up';
+    } else {
+      delete state.muscleStates[id];
+    }
+    renderMuscleMap();
+    renderMuscleActionPanel();
+    updateMuscleLists();
+  }
+
+  function showTooltip(event, name) {
+    const tooltip = document.getElementById('muscleTooltip');
+    tooltip.textContent = name;
+    tooltip.classList.remove('hidden');
+    tooltip.style.left = event.clientX + 'px';
+    tooltip.style.top = event.clientY + 'px';
+  }
+
+  function hideTooltip() {
+    document.getElementById('muscleTooltip').classList.add('hidden');
+  }
+
+  function updateMuscleLists() {
+    const treated = [];
+    const followup = [];
+    const allMuscles = [...ANTERIOR_MUSCLES, ...POSTERIOR_MUSCLES];
+    
+    for (const [id, status] of Object.entries(state.muscleStates)) {
+      const muscle = allMuscles.find(m => m.id === id);
+      if (muscle) {
+        if (status === 'treated') treated.push(muscle.name);
+        else followup.push(muscle.name);
+      }
+    }
+
+    const treatedEl = document.getElementById('treatedList');
+    const followupEl = document.getElementById('followupList');
+
+    treatedEl.innerHTML = treated.length
+      ? treated.map(n => \`<span class="muscle-chip muscle-chip-treated"><i class="fas fa-circle-dot"></i> \${n}</span>\`).join('')
+      : '<p style="font-size:0.75rem;color:var(--text-light);font-style:italic;">None selected</p>';
+
+    followupEl.innerHTML = followup.length
+      ? followup.map(n => \`<span class="muscle-chip muscle-chip-followup"><i class="fas fa-clock"></i> \${n}</span>\`).join('')
+      : '<p style="font-size:0.75rem;color:var(--text-light);font-style:italic;">None selected</p>';
+    updateSummaryPanel();
+  }
+
+  function clearAllMuscles() {
+    state.muscleStates = {};
+    renderMuscleMap();
+    renderMuscleActionPanel();
+    updateMuscleLists();
+  }
+
+  function setView(view) {
+    state.currentView = view;
+    document.getElementById('btnAnterior').classList.toggle('active', view === 'anterior');
+    document.getElementById('btnPosterior').classList.toggle('active', view === 'posterior');
+    renderMuscleMap();
+    renderMuscleActionPanel();
+  }
+
+  function setGender(gender) {
+    state.currentGender = gender;
+    document.getElementById('btnMale').classList.toggle('active', gender === 'male');
+    document.getElementById('btnFemale').classList.toggle('active', gender === 'female');
+    renderMuscleMap();
+    renderMuscleActionPanel();
+  }
+
+  function updateSummaryPanel() {
+    const fn = document.getElementById('clientFirstName').value;
+    const ln = document.getElementById('clientLastName').value;
+    const name = [fn, ln].filter(Boolean).join(' ') || '—';
+    const date = document.getElementById('sessionDate').value || '—';
+    const duration = document.getElementById('sessionDuration').value || '—';
+    
+    const treated = Object.values(state.muscleStates).filter(s => s === 'treated').length;
+    const followup = Object.values(state.muscleStates).filter(s => s === 'follow-up').length;
+
+    document.getElementById('summaryClient').textContent = name;
+    document.getElementById('summaryDate').textContent = date;
+    document.getElementById('summaryDuration').textContent = duration;
+    document.getElementById('summaryMuscleCount').textContent = treated;
+    document.getElementById('summaryFollowupCount').textContent = followup;
+  }
+
+  // ============================================================
+  // STEPS NAVIGATION
+  // ============================================================
+  function goToStep(step) {
+    // Update panels — use .active class instead of .hidden
+    document.querySelectorAll('.step-panel').forEach((p, i) => {
+      p.classList.toggle('active', i + 1 === step);
+    });
+
+    // Update step bar items
+    for (let i = 1; i <= 4; i++) {
+      const item  = document.getElementById('stepItem' + i);
+      const num   = document.getElementById('stepNum' + i);
+      const label = document.getElementById('stepLabel' + i);
+      if (item) {
+        item.classList.toggle('active', i === step);
+        item.classList.toggle('done',   i < step);
+      }
+      if (num) {
+        num.innerHTML = i < step ? '<i class="fas fa-check" style="font-size:0.7rem;"></i>' : String(i);
+      }
+    }
+
+    state.currentStep = step;
+    if (step === 3) updateSummaryPanel();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ============================================================
+  // PDF UPLOAD
+  // ============================================================
+  function handleDragOver(event) {
+    event.preventDefault();
+    document.getElementById('dropZone').classList.add('drag-over');
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+    document.getElementById('dropZone').classList.remove('drag-over');
+    const file = event.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') processFile(file);
+  }
+
+  function handlePDFUpload(event) {
+    const file = event.target.files[0];
+    if (file) processFile(file);
+  }
+
+  async function processFile(file) {
+    const progress = document.getElementById('pdfParseProgress');
+    const dropZone = document.getElementById('dropZone');
+    if (progress) progress.style.display = 'flex';
+    if (dropZone) dropZone.style.display = 'none';
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const text = await extractTextWithPDFJS(arrayBuffer);
+
+      if (text && text.length > 30) {
+        const parsed = parseIntakeFields(text);
+        autoFillClientFields(parsed);
+        const formattedSummary = formatIntakeSummary(text, parsed);
+        document.getElementById('intakeFormData').value = formattedSummary;
+        const filledCount = Object.values(parsed).filter(v => v && v !== 'Not provided').length;
+        document.getElementById('pdfFileName').textContent =
+          file.name + (filledCount > 0 ? ' — ' + filledCount + ' fields auto-filled ✓' : '');
+      } else {
+        document.getElementById('intakeFormData').value =
+          'PDF: ' + file.name + '\\n\\n[Text could not be extracted — please enter client information manually]';
+        document.getElementById('pdfFileName').textContent = file.name + ' (manual entry needed)';
+      }
+
+      const pdfStatus = document.getElementById('pdfStatus');
+      if (pdfStatus) pdfStatus.style.display = 'flex';
+      if (progress) progress.style.display = 'none';
+    } catch (err) {
+      console.error('PDF error:', err);
+      document.getElementById('intakeFormData').value =
+        'PDF: ' + file.name + '\\n\\n[Please add client intake information manually]';
+      document.getElementById('pdfFileName').textContent = file.name + ' (manual entry needed)';
+      const pdfStatus = document.getElementById('pdfStatus');
+      if (pdfStatus) pdfStatus.style.display = 'flex';
+      if (progress) progress.style.display = 'none';
+      if (dropZone) dropZone.style.display = '';
+    }
+  }
+
+  // ---- PDF.js text extraction ----
+  async function extractTextWithPDFJS(arrayBuffer) {
+    // Configure pdf.js worker
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(' ');
+        fullText += pageText + '\\n';
+      }
+      return fullText.trim();
+    }
+    return null;
+  }
+
+  // ---- Parse Flexion & Flow (and similar) intake form fields ----
+  // Strategy: extract each Q->A pair by finding the answer between a question
+  // keyword and the next recognisable keyword. Avoids complex regexes that
+  // break when embedded inside a TypeScript template literal.
+  function parseIntakeFields(text) {
+    const t = text.replace(/[ \\t]+/g, ' ').trim();
+
+    // Simple grab: find keyword, capture up to ~120 chars, trim at next cap word
+    function after(keyword) {
+      const idx = t.toLowerCase().indexOf(keyword.toLowerCase());
+      if (idx === -1) return '';
+      let chunk = t.slice(idx + keyword.length, idx + keyword.length + 200);
+      // strip leading punctuation / spaces
+      chunk = chunk.replace(/^[?:\\s]+/, '').trim();
+      // stop at the next sentence-like boundary or question word
+      const stopAt = chunk.search(/\\s+(?:How |What |Do |Are |Have |When |Please|Emergency|Lifestyle|Previous|Declaration|Signature|\\d+ \\/ )/);
+      if (stopAt > 5) chunk = chunk.slice(0, stopAt).trim();
+      return chunk;
+    }
+
+    // ---- Name (appear before "Email" so no ambiguity) ----
+    const firstName = after('First name').split(' ')[0].replace(/[^A-Za-z\\-]/g, '');
+    const lastName  = after('Last name').split(' ')[0].replace(/[^A-Za-z\\-]/g, '');
+
+    // ---- DOB ----
+    const dobRaw = after('Birthday').split(' ').slice(0, 3).join(' ').trim();
+    let dobForInput = '';
+    if (dobRaw) {
+      try {
+        const d = new Date(dobRaw);
+        if (!isNaN(d.getTime())) dobForInput = d.toISOString().split('T')[0];
+      } catch(e) {}
+    }
+
+    // ---- Email ----
+    const emailMatch = t.match(/[\\w.+-]+@[\\w.-]+\\.[a-z]{2,}/i);
+    const email = emailMatch ? emailMatch[0] : '';
+
+    // ---- Phone: first number after "Phone" (not "Emergency") ----
+    const phoneIdx = t.toLowerCase().indexOf('\\nphone ');
+    const phoneChunk = phoneIdx !== -1
+      ? t.slice(phoneIdx + 7, phoneIdx + 35)
+      : after('Phone +') || after('Phone ');
+    const phoneMatch2 = phoneChunk.match(/[+\\d][\\d\\s()+-]{6,18}/);
+    const phone = phoneMatch2 ? phoneMatch2[0].trim() : '';
+
+    // ---- Chief complaint ----
+    const chiefComplaint = (() => {
+      const raw = after('brings you to see me today');
+      if (!raw) return after('Reason for visit');
+      // stop before "How did you hear"
+      const cut = raw.toLowerCase().indexOf('how did you hear');
+      return cut > 3 ? raw.slice(0, cut).trim() : raw;
+    })();
+
+    // ---- Lifestyle ----
+    const occupation    = after('do for work').split(/\\s+(?:How |Are |Do |Have )/)[0].trim();
+    const sleep         = after('well do you sleep').split(/\\s+(?:How |Are |Do |Have )/)[0].trim();
+    const stress        = after('stress levels').split(/\\s+(?:How |Are |Do |Have )/)[0].trim();
+    const exercise      = after('do you ex').split(/\\s+(?:Do |Are |Have |When )/)[0].trim();
+    const lastTreatment = after('last treatment').split(/\\s+(?:Are |Do |Have )/)[0].trim();
+
+    // ---- Yes/No fields (suppress "No") ----
+    const no = /^no$/i;
+    const medsRaw    = after('taking any medications').split(/\\s+(?:Do |Are |Have )/)[0].trim();
+    const allergyRaw = after('any allergies').split(/\\s+(?:Have |Are |Do )/)[0].trim();
+    const injuryRaw  = after('accidents, injuries or surg').split(/\\s+(?:Do |Are |Have )/)[0].trim();
+    const condRaw    = after('medical conditions we need').split(/\\s+(?:Have |Are |Do )/)[0].trim();
+    const pregRaw    = after('pregnant or breastfeeding').split(/\\s+/)[0].trim();
+
+    return {
+      firstName, lastName, dobForInput, email, phone,
+      chiefComplaint,
+      occupation, sleep, stress, exercise, lastTreatment,
+      medications:  (!no.test(medsRaw)    && medsRaw)    ? medsRaw    : '',
+      allergies:    (!no.test(allergyRaw) && allergyRaw) ? allergyRaw : '',
+      injuries:     (!no.test(injuryRaw)  && injuryRaw)  ? injuryRaw  : '',
+      conditions:   (!no.test(condRaw)    && condRaw)    ? condRaw    : '',
+      pregnancy:    (!no.test(pregRaw)    && pregRaw)    ? pregRaw    : '',
+    };
+  }
+
+  // ---- Auto-fill the Step 1 client fields ----
+  function autoFillClientFields(p) {
+    if (p.firstName)  setIfEmpty('clientFirstName',  p.firstName);
+    if (p.lastName)   setIfEmpty('clientLastName',   p.lastName);
+    if (p.dobForInput) setIfEmpty('clientDOB',       p.dobForInput);
+    if (p.chiefComplaint) setIfEmpty('chiefComplaint', p.chiefComplaint);
+    if (p.medications)    setIfEmpty('medications',     p.medications);
+
+    // Save to client profiles so it's available for future sessions
+    if (p.firstName || p.lastName) {
+      const profile = {
+        id: 'pdf-' + Date.now(),
+        firstName:         p.firstName      || '',
+        lastName:          p.lastName       || '',
+        email:             p.email          || '',
+        phone:             p.phone          || '',
+        dob:               p.dobForInput    || '',
+        occupation:        p.occupation     || '',
+        chiefComplaint:    p.chiefComplaint || '',
+        medications:       p.medications    || '',
+        allergies:         p.allergies      || '',
+        medicalConditions: p.conditions     || '',
+        lastTreatment:     p.lastTreatment  || '',
+        source:            'pdf-upload',
+        savedAt:           new Date().toISOString(),
+      };
+      upsertClientProfile(profile);
+    }
+
+    // Show a brief toast
+    const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+    if (name) showCopyFeedback('\u2705 Client info auto-filled: ' + name);
+    updateSummaryPanel();
+  }
+
+  function setIfEmpty(id, value) {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = value;
+  }
+
+  // ---- Build a clean intake summary for the textarea ----
+  function formatIntakeSummary(rawText, p) {
+    const lines = [];
+    const add = (label, val) => { if (val && val.trim() && !/^no$/i.test(val.trim())) lines.push(label + ': ' + val.trim()); };
+    add('Client Name',       [p.firstName, p.lastName].filter(Boolean).join(' '));
+    add('Date of Birth',     p.dobForInput);
+    add('Email',             p.email);
+    add('Phone',             p.phone);
+    add('Reason for Visit',  p.chiefComplaint);
+    add('Occupation',        p.occupation);
+    add('Sleep Quality',     p.sleep);
+    add('Stress Level',      p.stress);
+    add('Exercise Frequency',p.exercise);
+    add('Last Treatment',    p.lastTreatment);
+    add('Medications',       p.medications);
+    add('Allergies',         p.allergies);
+    add('Injuries / Surgeries', p.injuries);
+    add('Medical Conditions',p.conditions);
+    add('Pregnancy / Breastfeeding', p.pregnancy);
+    return lines.length > 0
+      ? lines.join('\\n')
+      : rawText.replace(/\\s+/g, ' ').trim().slice(0, 1500);
+  }
+
+  function clearPDF() {
+    document.getElementById('pdfInput').value = '';
+    document.getElementById('pdfStatus').style.display = 'none';
+    document.getElementById('dropZone').style.display = '';
+    document.getElementById('intakeFormData').value = '';
+    state.pdfText = '';
+  }
+
+  // ============================================================
+  // GENERATE SOAP NOTES
+  // ============================================================
+  async function generateSOAP() {
+    goToStep(4);
+    document.getElementById('soapLoading').style.display = 'block';
+    document.getElementById('soapContent').style.display = 'none';
+
+    // Gather all muscles
+    const allMuscles = [...ANTERIOR_MUSCLES, ...POSTERIOR_MUSCLES];
+    const treatedMuscles = [];
+    const followupMuscles = [];
+    
+    for (const [id, status] of Object.entries(state.muscleStates)) {
+      const m = allMuscles.find(x => x.id === id);
+      if (m) {
+        if (status === 'treated') treatedMuscles.push(m.name);
+        else followupMuscles.push(m.name);
+      }
+    }
+
+    // Gather techniques
+    const techniques = Array.from(document.querySelectorAll('input[name="technique"]:checked'))
+      .map(el => el.value);
+
+    // Build context
+    const firstName = document.getElementById('clientFirstName').value;
+    const lastName = document.getElementById('clientLastName').value;
+    const dob = document.getElementById('clientDOB').value;
+    const chiefComplaint = document.getElementById('chiefComplaint').value;
+    const painBefore = document.getElementById('painLevel').value;
+    const painAfter = document.getElementById('postPainLevel').value;
+    const duration = document.getElementById('sessionDuration').value;
+    const medications = document.getElementById('medications').value;
+    const sessionSummary = document.getElementById('sessionSummary').value;
+    const clientFeedback = document.getElementById('clientFeedback').value;
+    const intakeData = document.getElementById('intakeFormData').value;
+
+    const musclesContext = [
+      treatedMuscles.length ? 'Treated: ' + treatedMuscles.join(', ') : '',
+      followupMuscles.length ? 'Needs follow-up: ' + followupMuscles.join(', ') : ''
+    ].filter(Boolean).join(' | ');
+
+    const contextData = {
+      client: [firstName, lastName].filter(Boolean).join(' '),
+      firstName,
+      lastName,
+      email: document.getElementById('clientEmail')?.value || '',
+      dob,
+      chiefComplaint,
+      painBefore,
+      painAfter,
+      duration,
+      medications,
+      techniques: techniques.join(', '),
+      sessionSummary,
+      clientFeedback,
+      muscles: musclesContext
+    };
+
+    try {
+      // Call backend API for SOAP generation
+      const response = await fetch('/api/generate-soap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contextData,
+          intakeData
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'AI generation error');
+      }
+
+      const soapData = await response.json();
+      state.soapData = soapData;
+
+      displaySOAP(soapData, contextData, treatedMuscles, followupMuscles);
+
+      // ── Auto-save to client file ──────────────────────────────────────────
+      const saved = await saveSOAPToClientFile(
+        contextData, soapData, treatedMuscles, followupMuscles, techniques
+      );
+      if (saved) {
+        // Try to upload PDF to Drive in background
+        setTimeout(() => {
+          uploadPDFToDrive(
+            saved.sessionId,
+            saved.accountNumber,
+            contextData.client || 'Client',
+            document.getElementById('sessionDate')?.value || new Date().toISOString().split('T')[0]
+          );
+        }, 1200);
+      }
+
+    } catch (err) {
+      document.getElementById('soapLoading').style.display = 'none';
+      goToStep(3);
+      alert('Error generating SOAP notes: ' + err.message);
+    }
+  }
+
+  function buildPrompt(ctx, intakeData) {
+    return \`Generate complete professional SOAP notes for a massage therapy session. Return a JSON object with keys: "subjective", "objective", "assessment", "plan", "therapistNotes".
+
+CLIENT INFORMATION:
+- Name: \${ctx.client || 'Not provided'}
+- Date of Birth: \${ctx.dob || 'Not provided'}
+- Chief Complaint: \${ctx.chiefComplaint || 'Not provided'}
+- Pain Level (before session): \${ctx.painBefore || 'Not recorded'}/10
+- Pain Level (after session): \${ctx.painAfter || 'Not recorded'}/10
+- Session Duration: \${ctx.duration}
+- Current Medications: \${ctx.medications || 'None reported'}
+
+INTAKE FORM DATA:
+\${intakeData || 'No intake form provided'}
+
+MUSCLES ADDRESSED:
+\${ctx.muscles || 'No specific muscles recorded'}
+
+TECHNIQUES USED:
+\${ctx.techniques || 'Not specified'}
+
+THERAPIST SESSION SUMMARY:
+\${ctx.sessionSummary || 'No summary provided'}
+
+CLIENT FEEDBACK:
+\${ctx.clientFeedback || 'No feedback recorded'}
+
+Generate detailed, clinically appropriate SOAP notes. Use professional massage therapy terminology.
+
+Return JSON:
+{
+  "subjective": "Patient-reported complaints, pain levels, history, goals. 3-4 clinical sentences.",
+  "objective": "Observable findings: palpation results for each muscle treated, tissue texture, ROM findings, postural observations, technique response. 4-6 sentences.",
+  "assessment": "Clinical interpretation: tissue findings, treatment response, progress toward therapeutic goals, functional improvement. 3-4 sentences.",
+  "plan": "Next session plan, recommended frequency, home care exercises, self-care instructions, areas to focus on next visit. 4-5 sentences.",
+  "therapistNotes": "Additional clinical notes, contraindications observed, special considerations, referral recommendations if applicable. 2-3 sentences."
+}\`;
+  }
+
+  function displaySOAP(data, ctx, treatedMuscles, followupMuscles) {
+    document.getElementById('soapLoading').style.display = 'none';
+    document.getElementById('soapContent').style.display = 'flex';
+    document.getElementById('statusBadge').style.display = 'inline-flex';
+
+    // Header
+    document.getElementById('soapClientName').textContent = ctx.client || 'Client';
+    document.getElementById('soapMeta').textContent = 'Chief Complaint: ' + (ctx.chiefComplaint || 'Not specified');
+    document.getElementById('soapDate').textContent = 'Date: ' + (document.getElementById('sessionDate').value || new Date().toLocaleDateString());
+    document.getElementById('soapDuration').textContent = 'Duration: ' + ctx.duration;
+
+    // Muscle tags
+    const tagsEl = document.getElementById('soapMusclesSummary');
+    tagsEl.innerHTML = [
+      ...treatedMuscles.map(m => \`<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs">\${m}</span>\`),
+      ...followupMuscles.map(m => \`<span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">\${m}</span>\`)
+    ].join('');
+
+    // SOAP content
+    document.getElementById('soapS').value = data.subjective || '';
+    document.getElementById('soapO').value = data.objective || '';
+    document.getElementById('soapA').value = data.assessment || '';
+    document.getElementById('soapP').value = data.plan || '';
+    document.getElementById('soapN').value = data.therapistNotes || '';
+
+    // Auto-resize textareas
+    ['soapS', 'soapO', 'soapA', 'soapP', 'soapN'].forEach(id => {
+      const el = document.getElementById(id);
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    });
+
+    // Muscles sidebar list
+    const musclesListEl = document.getElementById('soapMusclesList');
+    musclesListEl.innerHTML = [
+      treatedMuscles.length ? '<p class="font-semibold text-slate-500 uppercase text-xs tracking-wide mb-1">Treated</p>' + treatedMuscles.map(m => \`<div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>\${m}</div>\`).join('') : '',
+      followupMuscles.length ? '<p class="font-semibold text-slate-500 uppercase text-xs tracking-wide mt-2 mb-1">Follow-up</p>' + followupMuscles.map(m => \`<div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>\${m}</div>\`).join('') : ''
+    ].join('');
+  }
+
+  async function regenerateSOAP() {
+    goToStep(3);
+    setTimeout(() => generateSOAP(), 100);
+  }
+
+  // ============================================================
+  // COPY FUNCTIONS
+  // ============================================================
+  function copySection(section) {
+    const map = { S: 'soapS', O: 'soapO', A: 'soapA', P: 'soapP', N: 'soapN' };
+    const el = document.getElementById(map[section]);
+    if (el) {
+      navigator.clipboard.writeText(el.value).then(() => {
+        showCopyFeedback('Section copied!');
+      });
+    }
+  }
+
+  function copyAllSOAP() {
+    const s = document.getElementById('soapS').value;
+    const o = document.getElementById('soapO').value;
+    const a = document.getElementById('soapA').value;
+    const p = document.getElementById('soapP').value;
+    const n = document.getElementById('soapN').value;
+    const therapist = document.getElementById('therapistName').value;
+    const creds = document.getElementById('therapistCredentials').value;
+    
+    const client = document.getElementById('soapClientName').textContent;
+    const date = document.getElementById('soapDate').textContent;
+    const duration = document.getElementById('soapDuration').textContent;
+
+    const text = \`SOAP NOTE - MASSAGE THERAPY
+============================
+\${client}
+\${date} | \${duration}
+
+SUBJECTIVE:
+\${s}
+
+OBJECTIVE:
+\${o}
+
+ASSESSMENT:
+\${a}
+
+PLAN:
+\${p}
+
+THERAPIST NOTES:
+\${n}
+
+\${therapist ? 'Therapist: ' + therapist : ''}
+\${creds ? 'Credentials: ' + creds : ''}
+============================\`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      showCopyFeedback('All notes copied!');
+    });
+  }
+
+  function showCopyFeedback(msg) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  // ============================================================
+  // PDF EXPORT
+  // ============================================================
+  function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    
+    const pageW = 210;
+    const margin = 18;
+    const contentW = pageW - margin * 2;
+    let y = 20;
+
+    // Colors
+    const violet = [124, 58, 237];
+    const dark = [15, 23, 42];
+    const mid = [71, 85, 105];
+    const light = [248, 250, 252];
+
+    // Header
+    doc.setFillColor(...violet);
+    doc.rect(0, 0, pageW, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOAP NOTE — MASSAGE THERAPY', margin, 14);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Generated by SOAP Note Generator', margin, 22);
+    y = 38;
+
+    // Client info row
+    const client = document.getElementById('soapClientName').textContent;
+    const dateText = document.getElementById('sessionDate').value || '';
+    const duration = document.getElementById('sessionDuration').value || '';
+    const chiefComplaint = document.getElementById('chiefComplaint').value || '';
+    const painBefore = document.getElementById('painLevel').value;
+    const painAfter = document.getElementById('postPainLevel').value;
+    const therapist = document.getElementById('therapistName').value || '';
+    const creds = document.getElementById('therapistCredentials').value || '';
+
+    doc.setFillColor(...light);
+    doc.rect(margin, y, contentW, 22, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, contentW, 22, 'S');
+    
+    doc.setTextColor(...dark);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(client || 'Client', margin + 3, y + 7);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...mid);
+    doc.text('Date: ' + (dateText || '—'), margin + 3, y + 13);
+    doc.text('Duration: ' + (duration || '—'), margin + 3, y + 18);
+    if (chiefComplaint) doc.text('CC: ' + chiefComplaint, margin + 60, y + 13);
+    if (painBefore) doc.text('Pain before: ' + painBefore + '/10', margin + 60, y + 18);
+    if (painAfter) doc.text('Pain after: ' + painAfter + '/10', margin + 120, y + 18);
+    y += 28;
+
+    // SOAP Sections
+    const sections = [
+      { label: 'S — Subjective', id: 'soapS', color: [59, 130, 246] },
+      { label: 'O — Objective', id: 'soapO', color: [16, 185, 129] },
+      { label: 'A — Assessment', id: 'soapA', color: [245, 158, 11] },
+      { label: 'P — Plan', id: 'soapP', color: [139, 92, 246] },
+      { label: 'N — Therapist Notes', id: 'soapN', color: [107, 114, 128] },
+    ];
+
+    for (const section of sections) {
+      const text = document.getElementById(section.id).value;
+      if (!text) continue;
+
+      // Check if we need a new page
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // Section header
+      doc.setFillColor(...section.color);
+      doc.rect(margin, y, 4, 8, 'F');
+      doc.setTextColor(...dark);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(section.label, margin + 7, y + 5.5);
+      y += 11;
+
+      // Section content
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...mid);
+      const lines = doc.splitTextToSize(text, contentW - 5);
+      
+      for (const line of lines) {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, margin + 3, y);
+        y += 5;
+      }
+      y += 5;
+    }
+
+    // Muscles section
+    const allMuscles = [...ANTERIOR_MUSCLES, ...POSTERIOR_MUSCLES];
+    const treatedMuscles = [];
+    const followupMuscles = [];
+    for (const [id, status] of Object.entries(state.muscleStates)) {
+      const m = allMuscles.find(x => x.id === id);
+      if (m) {
+        if (status === 'treated') treatedMuscles.push(m.name);
+        else followupMuscles.push(m.name);
+      }
+    }
+
+    if (treatedMuscles.length || followupMuscles.length) {
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFillColor(107, 114, 128);
+      doc.rect(margin, y, 4, 8, 'F');
+      doc.setTextColor(...dark);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Muscles Addressed', margin + 7, y + 5.5);
+      y += 11;
+
+      if (treatedMuscles.length) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(16, 185, 129);
+        doc.text('Treated:', margin + 3, y);
+        y += 4.5;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...mid);
+        const lines = doc.splitTextToSize(treatedMuscles.join(', '), contentW - 10);
+        lines.forEach(l => { doc.text(l, margin + 3, y); y += 4.5; });
+        y += 2;
+      }
+      if (followupMuscles.length) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(245, 158, 11);
+        doc.text('Needs Follow-up:', margin + 3, y);
+        y += 4.5;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...mid);
+        const lines = doc.splitTextToSize(followupMuscles.join(', '), contentW - 10);
+        lines.forEach(l => { doc.text(l, margin + 3, y); y += 4.5; });
+      }
+      y += 5;
+    }
+
+    // Footer / signature
+    if (y > 255) { doc.addPage(); y = 20; }
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y + 5, margin + contentW, y + 5);
+    y += 10;
+    doc.setTextColor(...mid);
+    doc.setFontSize(8);
+    if (therapist || creds) {
+      doc.text('Therapist: ' + [therapist, creds].filter(Boolean).join(', '), margin, y);
+      y += 5;
+    }
+    doc.setFontSize(7);
+    doc.setTextColor(180, 180, 180);
+    doc.text('Generated: ' + new Date().toLocaleString() + ' · SOAP Note Generator', margin, y + 5);
+
+    // Save
+    const filename = 'SOAP_Note_' + (client || 'Client').replace(/\\s+/g, '_') + '_' + (dateText || 'date') + '.pdf';
+    doc.save(filename);
+  }
+
+  // ============================================================
+  // RESET
+  // ============================================================
+  function resetAll() {
+    if (!confirm('Start a new session? All current data will be cleared.')) return;
+    
+    state.muscleStates = {};
+    state.soapData = null;
+    state.currentView = 'anterior';
+    state.currentGender = 'male';
+
+    // Reset fields
+    ['clientFirstName', 'clientLastName', 'clientEmail', 'clientDOB', 'chiefComplaint', 
+     'painLevel', 'medications', 'sessionSummary', 'clientFeedback',
+     'postPainLevel', 'intakeFormData', 'therapistName', 'therapistCredentials']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    
+    document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('sessionDuration').value = '60 min';
+    
+    // Reset checkboxes
+    document.querySelectorAll('input[name="technique"]').forEach(cb => cb.checked = false);
+    
+    clearPDF();
+    document.getElementById('statusBadge').style.display = 'none';
+    document.getElementById('soapContent').style.display = 'none';
+    document.getElementById('soapLoading').style.display = 'none';
+    const savedBadge = document.getElementById('savedFileBadge');
+    if (savedBadge) savedBadge.style.display = 'none';
+    const driveBadge = document.getElementById('driveBadge');
+    if (driveBadge) driveBadge.style.display = 'none';
+    state.lastAccountNumber = null;
+    state.lastSessionId = null;
+
+    setView('anterior');
+    setGender('male');
+    state.currentRegion = 'all';
+    renderMuscleMap();
+    renderMuscleActionPanel();
+    updateMuscleLists();
+    goToStep(1);
+  }
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CLIENT ACCOUNTS MODAL
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="clientAccountsModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-box" style="max-width:900px;width:95vw;height:88vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <div>
+          <h3><i class="fas fa-folder-open" style="margin-right:8px;opacity:0.8;"></i>Client Accounts</h3>
+          <p>All client files — account numbers, intake history &amp; SOAP sessions</p>
+        </div>
+        <button class="modal-close" onclick="closeClientAccounts()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- Toolbar -->
+      <div style="padding:14px 24px;border-bottom:1px solid var(--border);background:#f7faff;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <input id="accountSearch" type="text" placeholder="Search by name, account number or email…"
+          oninput="filterAccountList()"
+          style="flex:1;min-width:200px;padding:9px 14px;border:1.5px solid var(--border);border-radius:50px;font-family:var(--font);font-size:0.82rem;outline:none;"/>
+        <span id="accountCount" style="font-size:0.75rem;color:var(--text-light);white-space:nowrap;"></span>
+        <button onclick="checkDriveStatus()" id="driveStatusBtn" class="btn btn-ghost btn-sm" title="Google Drive status">
+          <i class="fab fa-google-drive"></i> <span id="driveStatusLabel">Drive</span>
+        </button>
+      </div>
+
+      <!-- Client list -->
+      <div id="accountList" style="flex:1;overflow-y:auto;padding:16px 24px;"></div>
+
+      <!-- Footer -->
+      <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
+        <button onclick="closeClientAccounts()" class="btn btn-ghost btn-sm">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CLIENT FILE MODAL (detail view)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="clientFileModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-box" style="max-width:780px;width:95vw;max-height:90vh;overflow-y:auto;">
+      <div class="modal-header">
+        <div>
+          <h3 id="clientFileTitle"><i class="fas fa-user-circle" style="margin-right:8px;opacity:0.8;"></i>Client File</h3>
+          <p id="clientFileSubtitle"></p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="loadClientFromFile()" class="btn btn-primary btn-sm">
+            <i class="fas fa-play"></i> New Session
+          </button>
+          <button class="modal-close" onclick="closeClientFile()"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <div id="clientFileBody" style="padding:20px 24px;"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SESSION VIEWER MODAL
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="sessionViewModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-box" style="max-width:700px;width:95vw;max-height:90vh;overflow-y:auto;">
+      <div class="modal-header">
+        <div>
+          <h3><i class="fas fa-file-medical" style="margin-right:8px;opacity:0.8;"></i>Session Record</h3>
+          <p id="sessionViewSubtitle"></p>
+        </div>
+        <button class="modal-close" onclick="closeSessionView()"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="sessionViewBody" style="padding:20px 24px;"></div>
+    </div>
+  </div>
+
+  <script>
+  // ============================================================
+  // CLIENT ACCOUNTS — server-side KV storage
+  // ============================================================
+  let _currentClientFile = null; // currently open client record
+
+  async function openClientAccounts() {
+    document.getElementById('clientAccountsModal').style.display = 'flex';
+    document.getElementById('accountSearch').value = '';
+    await loadAccountList();
+    checkDriveStatus();
+    document.getElementById('accountSearch').focus();
+  }
+  function closeClientAccounts() {
+    document.getElementById('clientAccountsModal').style.display = 'none';
+  }
+
+  async function loadAccountList() {
+    const list = document.getElementById('accountList');
+    list.innerHTML = '<p style="text-align:center;padding:32px;color:var(--text-light);"><i class="fas fa-spinner fa-spin"></i> Loading clients…</p>';
+    try {
+      const res = await fetch('/api/clients');
+      const data = await res.json();
+      renderAccountList(data.clients || []);
+    } catch(e) {
+      list.innerHTML = '<p style="text-align:center;padding:32px;color:var(--danger);">Could not load clients — KV storage may not be configured yet.</p>';
+    }
+  }
+
+  function renderAccountList(clients) {
+    const list = document.getElementById('accountList');
+    const countEl = document.getElementById('accountCount');
+    if (countEl) countEl.textContent = clients.length + ' client' + (clients.length !== 1 ? 's' : '');
+
+    if (clients.length === 0) {
+      list.innerHTML = \`<div style="text-align:center;padding:48px 24px;color:var(--text-light);">
+        <i class="fas fa-users" style="font-size:2.5rem;opacity:0.25;display:block;margin-bottom:12px;"></i>
+        <p style="font-size:0.88rem;">No client files yet.<br>Client accounts are created automatically when you save a SOAP note.</p>
+      </div>\`;
+      return;
+    }
+
+    list.innerHTML = clients.map(c => {
+      const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Unknown';
+      const initials = [(c.firstName||'')[0],(c.lastName||'')[0]].filter(Boolean).join('').toUpperCase() || '?';
+      const lastSess = c.lastSessionDate ? new Date(c.lastSessionDate).toLocaleDateString('en-AU') : '—';
+      const sessions = c.sessionCount || 0;
+      return \`<div onclick="openClientFile('\${c.accountNumber}')"
+        style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all 0.15s;background:white;"
+        onmouseenter="this.style.borderColor='var(--accent)';this.style.background='#f0f8ff';"
+        onmouseleave="this.style.borderColor='var(--border)';this.style.background='white';">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;flex-shrink:0;">\${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:var(--primary);font-size:0.9rem;">\${name}</div>
+          <div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">\${[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact details'}</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="font-size:0.72rem;color:var(--text-light);font-family:monospace;background:#eef4fb;padding:3px 8px;border-radius:50px;font-weight:600;">\${c.accountNumber}</div>
+          <div style="font-size:0.7rem;color:var(--text-light);margin-top:4px;">\${sessions} session\${sessions !== 1 ? 's' : ''} · Last: \${lastSess}</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--border);flex-shrink:0;"></i>
+      </div>\`;
+    }).join('');
+  }
+
+  function filterAccountList() {
+    const q = (document.getElementById('accountSearch')?.value || '').toLowerCase();
+    const items = document.getElementById('accountList')?.querySelectorAll('[onclick^="openClientFile"]');
+    if (!items) { loadAccountList(); return; }
+    // Re-fetch and filter
+    fetch('/api/clients').then(r => r.json()).then(data => {
+      const filtered = q
+        ? (data.clients || []).filter(c =>
+            [c.firstName, c.lastName, c.email, c.accountNumber].join(' ').toLowerCase().includes(q))
+        : (data.clients || []);
+      renderAccountList(filtered);
+    });
+  }
+
+  // ─── Client File view ─────────────────────────────────────────────────────
+  async function openClientFile(accountNumber) {
+    const modal = document.getElementById('clientFileModal');
+    const body = document.getElementById('clientFileBody');
+    body.innerHTML = '<p style="text-align:center;padding:32px;color:var(--text-light);"><i class="fas fa-spinner fa-spin"></i> Loading…</p>';
+    modal.style.display = 'flex';
+
+    try {
+      const [clientRes, sessionsRes] = await Promise.all([
+        fetch('/api/clients/' + accountNumber),
+        fetch('/api/clients/' + accountNumber + '/sessions')
+      ]);
+      const client = await clientRes.json();
+      const { sessions } = await sessionsRes.json();
+      _currentClientFile = client;
+      renderClientFile(client, sessions || []);
+    } catch(e) {
+      body.innerHTML = '<p style="color:var(--danger);padding:24px;">Error loading client file.</p>';
+    }
+  }
+
+  function closeClientFile() {
+    document.getElementById('clientFileModal').style.display = 'none';
+    _currentClientFile = null;
+  }
+
+  function renderClientFile(client, sessions) {
+    document.getElementById('clientFileTitle').innerHTML =
+      '<i class="fas fa-user-circle" style="margin-right:8px;opacity:0.8;"></i>' +
+      [client.firstName, client.lastName].filter(Boolean).join(' ');
+    document.getElementById('clientFileSubtitle').textContent =
+      client.accountNumber + ' · ' + (client.email || 'No email') + ' · ' + (sessions.length) + ' sessions';
+
+    const lastIntake = client.intakeForms?.[0];
+    const intakeDate = lastIntake?.savedAt ? new Date(lastIntake.savedAt).toLocaleDateString('en-AU') : '—';
+
+    document.getElementById('clientFileBody').innerHTML = \`
+      <!-- Account Details -->
+      <div class="card-plain" style="margin-bottom:16px;">
+        <div class="cp-head"><i class="fas fa-id-card"></i> Account Details
+          <span style="margin-left:auto;font-size:0.72rem;font-family:monospace;background:#eef4fb;padding:3px 8px;border-radius:50px;">\${client.accountNumber}</span>
+        </div>
+        <div class="cp-body">
+          <div class="grid-2" style="gap:12px;">
+            <div><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Full Name</span><div style="font-size:0.88rem;margin-top:3px;">\${[client.firstName,client.lastName].filter(Boolean).join(' ')||'—'}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Date of Birth</span><div style="font-size:0.88rem;margin-top:3px;">\${client.dob||'—'}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Email</span><div style="font-size:0.88rem;margin-top:3px;">\${client.email||'—'}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Phone</span><div style="font-size:0.88rem;margin-top:3px;">\${client.phone||'—'}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Occupation</span><div style="font-size:0.88rem;margin-top:3px;">\${client.occupation||'—'}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Chief Complaint</span><div style="font-size:0.88rem;margin-top:3px;">\${client.chiefComplaint||'—'}</div></div>
+            \${client.medications ? '<div class="col-span-2"><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Medications</span><div style="font-size:0.88rem;margin-top:3px;background:#fff7ed;padding:6px 10px;border-radius:6px;">' + client.medications + '</div></div>' : ''}
+            \${client.allergies ? '<div class="col-span-2"><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Allergies</span><div style="font-size:0.88rem;margin-top:3px;background:#fef2f2;padding:6px 10px;border-radius:6px;">' + client.allergies + '</div></div>' : ''}
+            \${client.medicalConditions ? '<div class="col-span-2"><span style="font-size:0.72rem;color:var(--text-light);text-transform:uppercase;font-weight:700;">Medical Conditions</span><div style="font-size:0.88rem;margin-top:3px;">' + client.medicalConditions + '</div></div>' : ''}
+          </div>
+          <div style="margin-top:12px;font-size:0.72rem;color:var(--text-light);">
+            Created: \${new Date(client.createdAt).toLocaleDateString('en-AU')} · 
+            Last updated: \${new Date(client.updatedAt).toLocaleDateString('en-AU')} · 
+            First intake: \${intakeDate}
+          </div>
+        </div>
+      </div>
+
+      <!-- Intake Forms History -->
+      \${(client.intakeForms||[]).length > 0 ? \`
+      <div class="card-plain" style="margin-bottom:16px;">
+        <div class="cp-head"><i class="fas fa-clipboard-list"></i> Intake History (\${client.intakeForms.length})</div>
+        <div class="cp-body" style="padding:0;">
+          \${client.intakeForms.map((f, i) => \`
+            <details style="border-bottom:1px solid var(--border);">
+              <summary style="padding:12px 20px;cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--primary);list-style:none;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-file-alt" style="color:var(--accent);"></i>
+                Intake \${client.intakeForms.length - i}: \${new Date(f.savedAt).toLocaleDateString('en-AU')} <span style="font-size:0.7rem;color:var(--text-light);font-weight:400;margin-left:auto;">\${f.source||''}</span>
+              </summary>
+              <div style="padding:12px 20px 16px;background:#f7faff;font-size:0.8rem;color:var(--text);white-space:pre-wrap;">\${Object.entries(f.data||{}).map(([k,v]) => k+': '+v).join('\\n')||'No structured data captured.'}</div>
+            </details>
+          \`).join('')}
+        </div>
+      </div>
+      \` : ''}
+
+      <!-- Session History -->
+      <div class="card-plain">
+        <div class="cp-head"><i class="fas fa-history"></i> Session History (\${sessions.length})
+          \${sessions.some(s => s.pdfDriveUrl) ? '<span style="margin-left:auto;font-size:0.7rem;color:#38a169;"><i class="fab fa-google-drive"></i> Drive backups</span>' : ''}
+        </div>
+        <div class="cp-body" style="padding:0;">
+          \${sessions.length === 0
+            ? '<p style="padding:20px;font-size:0.82rem;color:var(--text-light);text-align:center;">No sessions recorded yet.</p>'
+            : sessions.map(s => \`
+              <div onclick="openSessionView('\${s.sessionId}')"
+                style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;"
+                onmouseenter="this.style.background='#f0f8ff';" onmouseleave="this.style.background='';">
+                <div style="width:36px;height:36px;border-radius:50%;background:#e8f4fc;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="fas fa-file-medical" style="color:var(--accent);font-size:0.85rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:0.85rem;font-weight:600;color:var(--primary);">
+                    \${new Date(s.sessionDate).toLocaleDateString('en-AU',{weekday:'short',year:'numeric',month:'short',day:'numeric'})}
+                    \${s.pdfDriveUrl ? '<i class="fab fa-google-drive" style="color:#38a169;margin-left:6px;font-size:0.75rem;" title="PDF saved to Drive"></i>' : ''}
+                  </div>
+                  <div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;">
+                    \${s.duration} · \${s.musclesTreated?.length||0} muscles treated · \${s.chiefComplaint||''}
+                  </div>
+                </div>
+                <i class="fas fa-chevron-right" style="color:var(--border);flex-shrink:0;font-size:0.75rem;"></i>
+              </div>
+            \`).join('')
+          }
+        </div>
+      </div>
+
+      <!-- Google Drive Connect -->
+      <div id="driveConnectSection" style="margin-top:16px;padding:14px 16px;background:#f0faf5;border:1.5px solid #c6f6d5;border-radius:var(--radius-sm);font-size:0.82rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <strong style="color:#276749;"><i class="fab fa-google-drive" style="margin-right:6px;"></i>Google Drive PDF Backup</strong>
+            <div style="color:#2f855a;margin-top:3px;" id="driveLinkStatus">Checking connection…</div>
+          </div>
+          <button onclick="connectDriveForClient('\${client.accountNumber}')" id="driveConnectBtn" class="btn btn-sm" style="background:#276749;color:white;border-radius:50px;">
+            <i class="fab fa-google-drive"></i> Connect Drive
+          </button>
+        </div>
+      </div>
+    \`;
+
+    // Check drive status
+    fetch('/api/drive/status').then(r => r.json()).then(d => {
+      const statusEl = document.getElementById('driveLinkStatus');
+      const btnEl = document.getElementById('driveConnectBtn');
+      if (d.connected) {
+        if (statusEl) statusEl.innerHTML = '✅ Connected — new SOAP PDFs will be automatically saved to your Google Drive.';
+        if (btnEl) btnEl.textContent = '✅ Connected';
+      } else {
+        if (statusEl) statusEl.textContent = 'Not connected. Click to authorise Google Drive access.';
+      }
+    });
+  }
+
+  function loadClientFromFile() {
+    if (!_currentClientFile) return;
+    loadClientProfile(_currentClientFile.id || _currentClientFile.accountNumber);
+    closeClientFile();
+    closeClientAccounts();
+  }
+
+  // ─── Session viewer ────────────────────────────────────────────────────────
+  async function openSessionView(sessionId) {
+    const modal = document.getElementById('sessionViewModal');
+    const body = document.getElementById('sessionViewBody');
+    body.innerHTML = '<p style="text-align:center;padding:32px;color:var(--text-light);"><i class="fas fa-spinner fa-spin"></i> Loading…</p>';
+    modal.style.display = 'flex';
+
+    try {
+      const res = await fetch('/api/sessions/' + sessionId);
+      const session = await res.json();
+      renderSessionView(session);
+    } catch(e) {
+      body.innerHTML = '<p style="color:var(--danger);">Error loading session.</p>';
+    }
+  }
+
+  function closeSessionView() {
+    document.getElementById('sessionViewModal').style.display = 'none';
+  }
+
+  function renderSessionView(s) {
+    document.getElementById('sessionViewSubtitle').textContent =
+      new Date(s.sessionDate).toLocaleDateString('en-AU',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+      ' · ' + s.clientName + ' · ' + s.duration;
+
+    const soap = s.soapNote || {};
+    document.getElementById('sessionViewBody').innerHTML = \`
+      <!-- Client & session info -->
+      <div style="display:flex;gap:20px;flex-wrap:wrap;background:#f7faff;padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:16px;font-size:0.82rem;">
+        <div><strong style="color:var(--primary);">\${s.clientName}</strong><div style="color:var(--text-light);">\${s.accountNumber}</div></div>
+        <div><strong>Date</strong><div style="color:var(--text-light);">\${new Date(s.sessionDate).toLocaleDateString('en-AU')}</div></div>
+        <div><strong>Duration</strong><div style="color:var(--text-light);">\${s.duration}</div></div>
+        <div><strong>Pain</strong><div style="color:var(--text-light);">\${s.painBefore||'—'}/10 → \${s.painAfter||'—'}/10</div></div>
+        \${s.therapistName ? '<div><strong>Therapist</strong><div style="color:var(--text-light);">'+s.therapistName+(s.therapistCredentials?' ('+s.therapistCredentials+')':'')+'</div></div>' : ''}
+      </div>
+
+      <!-- Muscles -->
+      \${(s.musclesTreated?.length || s.musclesToFollowUp?.length) ? \`
+        <div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:6px;">
+          \${(s.musclesTreated||[]).map(m => '<span style="font-size:0.72rem;padding:3px 10px;background:#d1fae5;color:#065f46;border-radius:50px;">'+m+'</span>').join('')}
+          \${(s.musclesToFollowUp||[]).map(m => '<span style="font-size:0.72rem;padding:3px 10px;background:#fef3c7;color:#92400e;border-radius:50px;"><i class="fas fa-clock" style="margin-right:3px;"></i>'+m+'</span>').join('')}
+        </div>
+      \` : ''}
+
+      <!-- SOAP sections -->
+      \${[
+        {key:'subjective', label:'S — Subjective', color:'#3b82f6'},
+        {key:'objective', label:'O — Objective', color:'#10b981'},
+        {key:'assessment', label:'A — Assessment', color:'#f59e0b'},
+        {key:'plan', label:'P — Plan', color:'#8b5cf6'},
+        {key:'therapistNotes', label:'Therapist Notes', color:'#6b7280'}
+      ].filter(sec => soap[sec.key]).map(sec => \`
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="width:4px;height:18px;background:\${sec.color};border-radius:2px;"></div>
+            <strong style="font-size:0.82rem;color:var(--primary);">\${sec.label}</strong>
+          </div>
+          <div style="font-size:0.83rem;line-height:1.6;color:var(--text);background:#f7faff;padding:12px 14px;border-radius:var(--radius-sm);">\${soap[sec.key]}</div>
+        </div>
+      \`).join('')}
+
+      <!-- Drive link -->
+      \${s.pdfDriveUrl ? \`
+        <div style="margin-top:16px;padding:12px 14px;background:#f0faf5;border:1px solid #c6f6d5;border-radius:var(--radius-sm);font-size:0.8rem;display:flex;align-items:center;gap:10px;">
+          <i class="fab fa-google-drive" style="color:#38a169;font-size:1.1rem;"></i>
+          <div>PDF backed up to Google Drive — <a href="\${s.pdfDriveUrl}" target="_blank" style="color:#276749;text-decoration:underline;">View in Drive</a></div>
+        </div>
+      \` : ''}
+
+      <div style="margin-top:16px;font-size:0.7rem;color:var(--text-light);">Saved: \${new Date(s.savedAt).toLocaleString('en-AU')}</div>
+    \`;
+  }
+
+  // ─── Google Drive connection ───────────────────────────────────────────────
+  function connectDriveForClient(accountNumber) {
+    const url = '/api/drive/auth?account=' + encodeURIComponent(accountNumber);
+    const popup = window.open(url, 'google-drive-auth', 'width=500,height=620,top=100,left=200');
+    window.addEventListener('message', function handler(e) {
+      if (e.data?.type === 'DRIVE_AUTH_SUCCESS') {
+        window.removeEventListener('message', handler);
+        popup?.close();
+        const statusEl = document.getElementById('driveLinkStatus');
+        const btnEl = document.getElementById('driveConnectBtn');
+        if (statusEl) statusEl.innerHTML = '✅ Connected — future SOAP PDFs will be saved to Google Drive automatically.';
+        if (btnEl) { btnEl.textContent = '✅ Connected'; btnEl.style.background = '#38a169'; }
+        showCopyFeedback('✅ Google Drive connected!');
+      }
+    });
+  }
+
+  async function checkDriveStatus() {
+    try {
+      const res = await fetch('/api/drive/status');
+      const d = await res.json();
+      const btn = document.getElementById('driveStatusBtn');
+      const label = document.getElementById('driveStatusLabel');
+      if (d.connected) {
+        if (label) label.innerHTML = '<span style="color:#38a169;">Drive ✓</span>';
+        if (btn) btn.title = 'Google Drive connected';
+      } else {
+        if (label) label.textContent = 'Drive';
+      }
+    } catch {}
+  }
+
+  // ─── Auto-save SOAP note to client file ───────────────────────────────────
+  async function saveSOAPToClientFile(contextData, soapData, treatedMuscles, followupMuscles, techniques) {
+    try {
+      const firstName = contextData.firstName || '';
+      const lastName = contextData.lastName || '';
+      const email = contextData.email || '';
+
+      // Build intake data map from the form
+      const intakeText = document.getElementById('intakeFormData')?.value || '';
+      const intakeMap = {};
+      intakeText.split('\\n').forEach(line => {
+        const colon = line.indexOf(':');
+        if (colon > 0) {
+          intakeMap[line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+        }
+      });
+
+      // 1. Create/upsert client record
+      const clientRes = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          phone: intakeMap['Phone'] || '',
+          dob: contextData.dob || '',
+          occupation: intakeMap['Occupation'] || '',
+          chiefComplaint: contextData.chiefComplaint || '',
+          medications: contextData.medications || '',
+          allergies: intakeMap['Allergies'] || '',
+          medicalConditions: intakeMap['Medical Conditions'] || '',
+          areasToAvoid: intakeMap['Areas to Avoid'] || '',
+          source: 'soap-generator',
+          intakeData: intakeMap
+        })
+      });
+      const clientJson = await clientRes.json();
+      const accountNumber = clientJson.accountNumber;
+      if (!accountNumber) throw new Error('No account number returned');
+
+      // 2. Save session
+      const sessRes = await fetch('/api/clients/' + accountNumber + '/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionDate: document.getElementById('sessionDate')?.value || new Date().toISOString().split('T')[0],
+          duration: contextData.duration || '',
+          musclesTreated: treatedMuscles,
+          musclesToFollowUp: followupMuscles,
+          techniques,
+          soapNote: soapData,
+          intakeSnapshot: intakeText,
+          therapistName: document.getElementById('therapistName')?.value || '',
+          therapistCredentials: document.getElementById('therapistCredentials')?.value || '',
+          painBefore: contextData.painBefore || '',
+          painAfter: contextData.painAfter || '',
+          chiefComplaint: contextData.chiefComplaint || ''
+        })
+      });
+      const sessJson = await sessRes.json();
+
+      // Store account number and session id in state for PDF upload
+      state.lastAccountNumber = accountNumber;
+      state.lastSessionId = sessJson.sessionId;
+
+      const label = clientJson.isNew ? '✅ New client file created' : '✅ Session saved';
+      showCopyFeedback(label + ' · ' + accountNumber);
+
+      // Show save confirmation in SOAP header
+      const badge = document.getElementById('savedFileBadge');
+      if (badge) {
+        const span = badge.querySelector('span');
+        if (span) span.textContent = accountNumber;
+        badge.style.display = 'inline-flex';
+      }
+
+      return { accountNumber, sessionId: sessJson.sessionId };
+    } catch(e) {
+      console.warn('Could not save to client file:', e.message);
+      return null;
+    }
+  }
+
+  // ─── Upload PDF to Drive after save ──────────────────────────────────────
+  async function uploadPDFToDrive(sessionId, accountNumber, clientName, sessionDate) {
+    try {
+      const driveStatus = await fetch('/api/drive/status').then(r => r.json());
+      if (!driveStatus.connected) return;
+
+      // Generate PDF as base64
+      const base64 = generatePDFBase64();
+      if (!base64) return;
+
+      const filename = 'SOAP_' + accountNumber + '_' + sessionDate + '_' + clientName.replace(/\s+/g,'_') + '.pdf';
+
+      const res = await fetch('/api/drive/upload-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, accountNumber, filename, pdfBase64: base64 })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showCopyFeedback('📁 PDF saved to Google Drive');
+        const badge = document.getElementById('driveBadge');
+        if (badge) { badge.style.display = 'inline-flex'; badge.href = data.url; }
+      }
+    } catch(e) {
+      console.warn('Drive upload failed:', e.message);
+    }
+  }
+
+  // ─── Generate PDF and return base64 string ───────────────────────────────
+  function generatePDFBase64() {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = 210, margin = 18, contentW = pageW - margin * 2;
+      let y = 20;
+      const violet = [124, 58, 237], dark = [15, 23, 42], mid = [71, 85, 105], light = [248, 250, 252];
+
+      doc.setFillColor(...violet);
+      doc.rect(0, 0, pageW, 30, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('SOAP NOTE — MASSAGE THERAPY', margin, 14);
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+      doc.text('Generated by SOAP Note Generator · Flexion & Flow', margin, 22);
+      y = 38;
+
+      const client = document.getElementById('soapClientName')?.textContent || '';
+      const dateText = document.getElementById('sessionDate')?.value || '';
+      const duration = document.getElementById('sessionDuration')?.value || '';
+      const chiefComplaint = document.getElementById('chiefComplaint')?.value || '';
+      const painBefore = document.getElementById('painLevel')?.value || '';
+      const painAfter = document.getElementById('postPainLevel')?.value || '';
+      const therapist = document.getElementById('therapistName')?.value || '';
+      const creds = document.getElementById('therapistCredentials')?.value || '';
+      const acct = state.lastAccountNumber || '';
+
+      doc.setFillColor(...light);
+      doc.rect(margin, y, contentW, 26, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(margin, y, contentW, 26, 'S');
+      doc.setTextColor(...dark); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text(client || 'Client', margin + 3, y + 7);
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...mid);
+      doc.text('Date: ' + (dateText || '—'), margin + 3, y + 13);
+      doc.text('Duration: ' + (duration || '—'), margin + 3, y + 18);
+      if (chiefComplaint) doc.text('CC: ' + chiefComplaint, margin + 60, y + 13);
+      if (painBefore) doc.text('Pain before: ' + painBefore + '/10', margin + 60, y + 18);
+      if (painAfter) doc.text('Pain after: ' + painAfter + '/10', margin + 120, y + 18);
+      if (acct) doc.text('Account: ' + acct, margin + 120, y + 13);
+      y += 32;
+
+      const sections = [
+        { label: 'S — Subjective', id: 'soapS', color: [59, 130, 246] },
+        { label: 'O — Objective', id: 'soapO', color: [16, 185, 129] },
+        { label: 'A — Assessment', id: 'soapA', color: [245, 158, 11] },
+        { label: 'P — Plan', id: 'soapP', color: [139, 92, 246] },
+        { label: 'N — Therapist Notes', id: 'soapN', color: [107, 114, 128] },
+      ];
+      for (const sec of sections) {
+        const text = document.getElementById(sec.id)?.value;
+        if (!text) continue;
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFillColor(...sec.color);
+        doc.rect(margin, y, 4, 8, 'F');
+        doc.setTextColor(...dark); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+        doc.text(sec.label, margin + 7, y + 5.5);
+        y += 11;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...mid);
+        const lines = doc.splitTextToSize(text, contentW - 5);
+        for (const line of lines) {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.text(line, margin + 3, y); y += 5;
+        }
+        y += 5;
+      }
+
+      if (y > 255) { doc.addPage(); y = 20; }
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, y + 5, margin + contentW, y + 5);
+      y += 10;
+      doc.setTextColor(...mid); doc.setFontSize(8);
+      if (therapist || creds) { doc.text('Therapist: ' + [therapist, creds].filter(Boolean).join(', '), margin, y); y += 5; }
+      doc.setFontSize(7); doc.setTextColor(180, 180, 180);
+      doc.text('Generated: ' + new Date().toLocaleString() + ' · SOAP Note Generator', margin, y + 5);
+
+      return doc.output('datauristring').split(',')[1]; // base64 only
+    } catch(e) {
+      console.warn('PDF base64 generation failed:', e);
+      return null;
+    }
+  }
+  </script>
+</body>
+</html>

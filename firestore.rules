@@ -1,0 +1,151 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: clients
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email format)
+    //   - phone: string (optional)
+    //   - lastIntakeDate: string (optional, date-time)
+    //   - lastSoapNoteDate: string (optional, date-time)
+    //
+    // Collection: tasks
+    // Fields:
+    //   - title: string (required)
+    //   - description: string (optional)
+    //   - status: string (required, enum: pending, completed, snoozed)
+    //   - dueDate: string (required, date-time)
+    //   - clientEmail: string (optional, email format)
+    //   - clientName: string (optional)
+    //   - submissionId: string (optional)
+    //   - type: string (required, enum: soap_note, follow_up, manual)
+    //
+    // Collection: intakes
+    // Fields:
+    //   - submissionId: string (required)
+    //   - clientName: string (required)
+    //   - clientEmail: string (required, email format)
+    //   - clientPhone: string (optional)
+    //   - intakeDate: string (required, date-time)
+    //   - sessionDate: string (optional, date-time)
+    //   - pdfUrl: string (optional, uri)
+    //
+    // Collection: users
+    // Fields:
+    //   - email: string (required, email format)
+    //   - role: string (required, enum: admin)
+    //
+    // Collection: audit_log
+    // Fields:
+    //   - action: string (required)
+    //   - details: string (required)
+    //   - adminEmail: string (required, email format)
+    //   - adminId: string (required, matches auth.uid)
+    //   - timestamp: string (required, date-time)
+    //   - targetId: string (optional)
+    //   - targetType: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "dyllz92@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidClient(data) {
+      return hasOnlyAllowedFields(['name', 'email', 'phone', 'lastIntakeDate', 'lastSoapNoteDate']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email);
+    }
+
+    function isValidTask(data) {
+      return hasOnlyAllowedFields(['title', 'description', 'status', 'dueDate', 'clientEmail', 'clientName', 'submissionId', 'type']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.status in ['pending', 'completed', 'snoozed'] &&
+             isValidDateString(data.dueDate) &&
+             data.type in ['soap_note', 'follow_up', 'manual'];
+    }
+
+    function isValidIntake(data) {
+      return hasOnlyAllowedFields(['submissionId', 'clientName', 'clientEmail', 'clientPhone', 'intakeDate', 'sessionDate', 'pdfUrl']) &&
+             data.submissionId is string && data.submissionId.size() > 0 &&
+             data.clientName is string && data.clientName.size() > 0 &&
+             isValidEmail(data.clientEmail) &&
+             isValidDateString(data.intakeDate);
+    }
+
+    function isValidAuditLog(data) {
+      return hasOnlyAllowedFields(['action', 'details', 'adminEmail', 'adminId', 'timestamp', 'targetId', 'targetType']) &&
+             data.action is string && data.action.size() > 0 &&
+             data.details is string && data.details.size() > 0 &&
+             isValidEmail(data.adminEmail) &&
+             data.adminId == request.auth.uid &&
+             isValidDateString(data.timestamp);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /clients/{clientId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidClient(request.resource.data);
+      allow update: if isAdmin() && isValidClient(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidTask(request.resource.data);
+      allow update: if isAdmin() && isValidTask(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /intakes/{intakeId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidIntake(request.resource.data);
+      allow update: if isAdmin() && isValidIntake(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /audit_log/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidAuditLog(request.resource.data);
+      allow update: if false; // Audit logs should be immutable
+      allow delete: if false; // Audit logs should be permanent
+    }
+  }
+}

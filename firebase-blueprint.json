@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "clients": {
+      "title": "Client Profile",
+      "description": "Aggregated client information from intakes and SOAP notes.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the client." },
+        "email": { "type": "string", "format": "email", "description": "Client's email address." },
+        "phone": { "type": "string", "description": "Client's phone number." },
+        "lastIntakeDate": { "type": "string", "format": "date-time", "description": "Date of the most recent intake submission." },
+        "lastSoapNoteDate": { "type": "string", "format": "date-time", "description": "Date of the most recent SOAP note." }
+      },
+      "required": ["name", "email"]
+    },
+    "tasks": {
+      "title": "Task/Reminder",
+      "description": "A task or reminder for the therapist (e.g., SOAP note, follow-up).",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Short summary of the task." },
+        "description": { "type": "string", "description": "Detailed task information." },
+        "status": { "type": "string", "enum": ["pending", "completed", "snoozed"], "description": "Current status of the task." },
+        "dueDate": { "type": "string", "format": "date-time", "description": "When the task is due." },
+        "clientEmail": { "type": "string", "format": "email", "description": "Associated client's email." },
+        "clientName": { "type": "string", "description": "Associated client's name." },
+        "submissionId": { "type": "string", "description": "Unique ID from the intake submission." },
+        "type": { "type": "string", "enum": ["soap_note", "follow_up", "manual"], "description": "Type of task." }
+      },
+      "required": ["title", "status", "dueDate"]
+    },
+    "intakes": {
+      "title": "Intake Submission",
+      "description": "Record of a received intake form submission.",
+      "type": "object",
+      "properties": {
+        "submissionId": { "type": "string", "description": "Unique ID from the intake form." },
+        "clientName": { "type": "string", "description": "Name provided in the intake." },
+        "clientEmail": { "type": "string", "format": "email", "description": "Email provided in the intake." },
+        "clientPhone": { "type": "string", "description": "Phone provided in the intake." },
+        "intakeDate": { "type": "string", "format": "date-time", "description": "When the intake was submitted." },
+        "sessionDate": { "type": "string", "format": "date-time", "description": "Scheduled session date." },
+        "pdfUrl": { "type": "string", "format": "uri", "description": "Link to the intake PDF in Google Drive." }
+      },
+      "required": ["submissionId", "clientName", "clientEmail", "intakeDate"]
+    },
+    "users": {
+      "title": "Admin User",
+      "description": "User with access to the dashboard.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "Admin's email address." },
+        "role": { "type": "string", "enum": ["admin"], "description": "User's role." }
+      },
+      "required": ["email", "role"]
+    },
+    "audit_log": {
+      "title": "Audit Log Entry",
+      "description": "Record of an administrative action.",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "description": "Type of action performed." },
+        "details": { "type": "string", "description": "Description of the action." },
+        "adminEmail": { "type": "string", "format": "email", "description": "Email of the admin who performed the action." },
+        "adminId": { "type": "string", "description": "UID of the admin." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the action occurred." },
+        "targetId": { "type": "string", "description": "ID of the affected resource." },
+        "targetType": { "type": "string", "description": "Type of the affected resource." }
+      },
+      "required": ["action", "details", "adminEmail", "adminId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/clients/{clientId}": {
+      "schema": "clients",
+      "description": "Collection of client profiles."
+    },
+    "/tasks/{taskId}": {
+      "schema": "tasks",
+      "description": "Collection of tasks and reminders."
+    },
+    "/intakes/{intakeId}": {
+      "schema": "intakes",
+      "description": "Collection of received intake submissions."
+    },
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Collection of authorized admin users."
+    },
+    "/audit_log/{logId}": {
+      "schema": "audit_log",
+      "description": "Collection of administrative audit logs."
+    }
+  }
+}
